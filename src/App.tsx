@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import Home from './pages/Home'
 import Setup from './pages/Setup'
@@ -38,22 +39,24 @@ function Header() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="flex flex-col min-h-svh bg-cream">
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/setup" element={<Setup />} />
-          <Route path="/round" element={<Round />} />
-          <Route path="/round-a" element={<RoundUndoA />} />
-          <Route path="/round-b" element={<RoundUndoB />} />
-          <Route path="/round-c" element={<RoundUndoC />} />
-          <Route path="/summary/:id" element={<Summary />} />
-          <Route path="/bag" element={<Bag />} />
-          <Route path="/courses" element={<Courses />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <Sentry.ErrorBoundary fallback={<p className="p-8 text-center text-red-700">Something went wrong. Please reload the app.</p>} showDialog>
+      <BrowserRouter>
+        <div className="flex flex-col min-h-svh bg-cream">
+          <Header />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/setup" element={<Setup />} />
+            <Route path="/round" element={<Round />} />
+            <Route path="/round-a" element={<RoundUndoA />} />
+            <Route path="/round-b" element={<RoundUndoB />} />
+            <Route path="/round-c" element={<RoundUndoC />} />
+            <Route path="/summary/:id" element={<Summary />} />
+            <Route path="/bag" element={<Bag />} />
+            <Route path="/courses" element={<Courses />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </Sentry.ErrorBoundary>
   )
 }
 
