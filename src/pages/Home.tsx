@@ -13,7 +13,7 @@ export default function Home() {
   const activeRoundId = useAppStore(s => s.activeRoundId)
 
   const activeRound = rounds.find(r => r.id === activeRoundId)
-  const pastRounds = rounds.filter(r => r.completedAt).slice(0, 5)
+  const pastRounds = rounds.filter(r => r.completedAt)
 
   return (
     <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
