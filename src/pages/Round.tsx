@@ -71,8 +71,8 @@ export default function Round() {
 
   // GIR: derived, never entered directly
   const gir =
-    hole.shots.length > 0 && hole.putts !== undefined
-      ? hole.shots.length <= hole.par - 2
+    nonPutterShots > 0 && hole.putts !== undefined
+      ? nonPutterShots <= hole.par - 2
       : undefined
 
   // Running totals

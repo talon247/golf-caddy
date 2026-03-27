@@ -15,13 +15,16 @@ export function calcPuttsAvg(holes: Hole[]): number | null {
  * approach shots = shots.length (all club taps before putting).
  * Only counts holes that have been played and have putts data.
  */
-export function calcGIR(holes: Hole[]): { pct: number; hits: number; total: number } | null {
+export function calcGIR(
+  holes: Hole[],
+  putterIds: Set<string> = new Set(),
+): { pct: number; hits: number; total: number } | null {
   const eligible = holes.filter(h => h.shots.length > 0 && h.putts !== undefined)
   if (eligible.length === 0) return null
   let hits = 0
   for (const h of eligible) {
-    // approach shots = club taps (putts tracked separately, not in shots array)
-    const approachShots = h.shots.length
+    // approach shots = non-putter club taps only
+    const approachShots = h.shots.filter(s => !putterIds.has(s.clubId)).length
     if (approachShots <= h.par - 2) hits++
   }
   return { pct: (hits / eligible.length) * 100, hits, total: eligible.length }
@@ -39,3 +42,4 @@ export function calcFairwaysHit(holes: Hole[]): { pct: number; hits: number; tot
   const hits = eligible.filter(h => h.fairwayHit === true).length
   return { pct: (hits / eligible.length) * 100, hits, total: eligible.length }
 }
+

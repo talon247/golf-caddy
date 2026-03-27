@@ -61,7 +61,7 @@ export default function Summary() {
   }
 
   const puttsAvg = calcPuttsAvg(round.holes)
-  const gir = calcGIR(round.holes)
+  const gir = calcGIR(round.holes, putterIds)
   const fairways = calcFairwaysHit(round.holes)
   const hasStats = puttsAvg !== null || gir !== null || fairways !== null
 
