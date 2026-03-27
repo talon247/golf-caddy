@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { XCircle, Delete } from 'lucide-react'
+import { XCircle } from 'lucide-react'
 import { useAppStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
@@ -38,7 +38,7 @@ function scoreColor(strokes: number, par: number): string {
 
 export default function Round() {
   const navigate = useNavigate()
-  const { rounds, activeRoundId, addShot, removeLastShot, removeShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
+  const { rounds, activeRoundId, addShot, removeShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
   const bag = useAppStore(s => s.clubBag).sort((a, b) => a.order - b.order)
 
   const round = rounds.find(r => r.id === activeRoundId)
@@ -101,10 +101,6 @@ export default function Round() {
       removeShot(round!.id, currentHole, clubShots[clubShots.length - 1].index)
       vibrate([20, 20])
     }
-  }
-
-  function handleUndo() {
-    removeLastShot(round!.id, currentHole)
   }
 
   function handlePar(par: number) {
@@ -224,18 +220,7 @@ export default function Round() {
             <div className={`text-lg font-semibold h-7 flex items-center justify-center text-center ${strokes > 0 ? scoreColor(strokes, hole.par) : 'text-gray-400'}`}>
               {strokes > 0 ? scoreName(strokes, hole.par) : 'Tap a club to start'}
             </div>
-            <button
-              onClick={handleUndo}
-              disabled={strokes === 0}
-              aria-label="Remove last shot"
-              className={`absolute top-3 right-3 flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] rounded-xl transition-all ${
-                strokes > 0
-                  ? 'text-[#2d5a27] hover:bg-[#f0f7ee] active:bg-[#e8f5e4] active:scale-95'
-                  : 'text-[#e5e1d8] cursor-default pointer-events-none'
-              }`}
-            >
-              <Delete size={22} />
-            </button>
+
           </div>
 
           {/* Club quick-tap grid */}
@@ -416,5 +401,6 @@ export default function Round() {
     </main>
   )
 }
+
 
 
