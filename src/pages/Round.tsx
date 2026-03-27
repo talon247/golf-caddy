@@ -61,7 +61,11 @@ export default function Round() {
   }
 
   const hole = round.holes.find(h => h.number === currentHole)!
-  const strokes = hole.shots.length + (hole.putts ?? 0)
+  // Count non-putter club taps + separate putt counter
+  // Putter taps are for GIR/club tracking only — putts counter is the source of truth for putting score
+  const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
+  const nonPutterShots = hole.shots.filter(s => !putterIds.has(s.clubId)).length
+  const strokes = nonPutterShots + (hole.putts ?? 0)
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
 
@@ -73,7 +77,7 @@ export default function Round() {
 
   // Running totals
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.length + (h.putts ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0), 0)
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
@@ -392,4 +396,5 @@ export default function Round() {
     </main>
   )
 }
+
 
