@@ -19,6 +19,7 @@ export default function Setup() {
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
   const [showBagWarning, setShowBagWarning] = useState(false)
+  const [showAbandonWarning, setShowAbandonWarning] = useState(false)
 
   function selectCourse(id: string) {
     const course = courses.find(c => c.id === id)
@@ -53,14 +54,8 @@ export default function Setup() {
     })
   }
 
-  function doStartRound() {
-    if (activeRoundId) {
-      const confirmed = window.confirm(
-        'You have an active round in progress. Starting a new round will abandon it. Continue?'
-      )
-      if (!confirmed) return
-      completeRound(activeRoundId)
-    }
+  function doStartRoundForced() {
+    if (activeRoundId) completeRound(activeRoundId)
     const id = crypto.randomUUID()
     addRound({
       id,
@@ -78,6 +73,14 @@ export default function Setup() {
     })
     setActiveRoundId(id)
     navigate('/round')
+  }
+
+  function doStartRound() {
+    if (activeRoundId) {
+      setShowAbandonWarning(true)
+      return
+    }
+    doStartRoundForced()
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -227,6 +230,20 @@ export default function Setup() {
             setShowBagWarning(false)
             navigate('/bag')
           }}
+        />
+      )}
+
+      {showAbandonWarning && (
+        <ConfirmModal
+          title="Abandon current round?"
+          message="You have an active round in progress. Starting a new round will abandon it."
+          confirmLabel="Start New Round"
+          cancelLabel="Keep Playing"
+          onConfirm={() => {
+            setShowAbandonWarning(false)
+            doStartRoundForced()
+          }}
+          onCancel={() => setShowAbandonWarning(false)}
         />
       )}
     </div>
