@@ -19,7 +19,8 @@ export default function PuttsInput({ value, onChange }: PuttsInputProps) {
       <span className="text-sm text-warm-gray w-14">Putts</span>
       <div className="flex items-center gap-2">
         <button
-          onClick={decrement}
+          type="button"
+          onClick={(e) => { e.preventDefault(); decrement() }}
           disabled={current === 0}
           aria-label="Decrease putts"
           className="w-10 h-10 rounded-full bg-white border-2 border-cream-dark text-xl font-bold text-forest flex items-center justify-center disabled:opacity-30 active:bg-cream-dark transition-colors touch-target"
@@ -30,7 +31,8 @@ export default function PuttsInput({ value, onChange }: PuttsInputProps) {
           {value === undefined ? '—' : current}
         </span>
         <button
-          onClick={increment}
+          type="button"
+          onClick={(e) => { e.preventDefault(); increment() }}
           disabled={current === 9}
           aria-label="Increase putts"
           className="w-10 h-10 rounded-full bg-white border-2 border-cream-dark text-xl font-bold text-forest flex items-center justify-center disabled:opacity-30 active:bg-cream-dark transition-colors touch-target"

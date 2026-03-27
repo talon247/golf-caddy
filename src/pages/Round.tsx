@@ -210,28 +210,6 @@ export default function Round() {
             )}
           </div>
 
-          {/* Per-hole stats */}
-          <div className="bg-white rounded-2xl border border-cream-dark px-4 py-3 flex flex-col gap-3 shadow-sm">
-            <PuttsInput
-              value={hole.putts}
-              onChange={(putts) => setPutts(round!.id, currentHole, putts)}
-            />
-            {hole.par >= 4 && (
-              <FairwayToggle
-                value={hole.fairwayHit}
-                onChange={(hit) => setFairwayHit(round!.id, currentHole, hit)}
-              />
-            )}
-            {gir !== undefined && (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-warm-gray w-14">GIR</span>
-                <span className={`text-sm font-semibold ${gir ? 'text-forest-mid' : 'text-red-600'}`}>
-                  {gir ? 'Yes' : 'No'}
-                </span>
-              </div>
-            )}
-          </div>
-
           {/* Club quick-tap grid */}
           <div>
             <p className="text-xs text-warm-gray uppercase tracking-wide mb-2">Tap club used</p>
@@ -250,6 +228,28 @@ export default function Round() {
                     {club.name}
                   </button>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Per-hole stats */}
+          <div className="bg-white rounded-2xl border border-cream-dark px-4 py-3 flex flex-col gap-3 shadow-sm">
+            <PuttsInput
+              value={hole.putts}
+              onChange={(putts) => setPutts(round!.id, currentHole, putts)}
+            />
+            {hole.par >= 4 && (
+              <FairwayToggle
+                value={hole.fairwayHit}
+                onChange={(hit) => setFairwayHit(round!.id, currentHole, hit)}
+              />
+            )}
+            {gir !== undefined && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-warm-gray w-14">GIR</span>
+                <span className={`text-sm font-semibold ${gir ? 'text-forest-mid' : 'text-red-600'}`}>
+                  {gir ? 'Yes' : 'No'}
+                </span>
               </div>
             )}
           </div>
