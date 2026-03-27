@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Club, Round } from '../types'
+import type { Club, Round, Shot } from '../types'
 import { loadState, saveState } from '../storage'
 
 interface StoreState {
@@ -18,6 +18,11 @@ interface StoreState {
   setActiveRoundId: (id: string | undefined) => void
   addRound: (round: Round) => void
   updateRound: (round: Round) => void
+  addShot: (roundId: string, holeNumber: number, shot: Shot) => void
+  removeLastShot: (roundId: string, holeNumber: number) => void
+  setHolePar: (roundId: string, holeNumber: number, par: number) => void
+  completeRound: (roundId: string) => void
+  deleteRound: (roundId: string) => void
 }
 
 const initial = loadState()
@@ -91,7 +96,7 @@ export const useAppStore = create<StoreState>((set, get) => ({
   },
 
   addRound: (round) => {
-    const rounds = [...get().rounds, round]
+    const rounds = [round, ...get().rounds]
     set({ rounds })
     persist({ ...get(), rounds })
   },
@@ -100,5 +105,65 @@ export const useAppStore = create<StoreState>((set, get) => ({
     const rounds = get().rounds.map(r => (r.id === round.id ? round : r))
     set({ rounds })
     persist({ ...get(), rounds })
+  },
+
+  addShot: (roundId, holeNumber, shot) => {
+    const rounds = get().rounds.map(r => {
+      if (r.id !== roundId) return r
+      return {
+        ...r,
+        holes: r.holes.map(h =>
+          h.number === holeNumber ? { ...h, shots: [...h.shots, shot] } : h,
+        ),
+      }
+    })
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
+
+  removeLastShot: (roundId, holeNumber) => {
+    const rounds = get().rounds.map(r => {
+      if (r.id !== roundId) return r
+      return {
+        ...r,
+        holes: r.holes.map(h =>
+          h.number === holeNumber
+            ? { ...h, shots: h.shots.slice(0, -1) }
+            : h,
+        ),
+      }
+    })
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
+
+  setHolePar: (roundId, holeNumber, par) => {
+    const rounds = get().rounds.map(r => {
+      if (r.id !== roundId) return r
+      return {
+        ...r,
+        holes: r.holes.map(h =>
+          h.number === holeNumber ? { ...h, par } : h,
+        ),
+      }
+    })
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
+
+  completeRound: (roundId) => {
+    const rounds = get().rounds.map(r =>
+      r.id === roundId ? { ...r, completedAt: Date.now() } : r,
+    )
+    const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
+    set({ rounds, activeRoundId })
+    persist({ ...get(), rounds, activeRoundId })
+  },
+
+  deleteRound: (roundId) => {
+    const rounds = get().rounds.filter(r => r.id !== roundId)
+    const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
+    set({ rounds, activeRoundId })
+    persist({ ...get(), rounds, activeRoundId })
   },
 }))

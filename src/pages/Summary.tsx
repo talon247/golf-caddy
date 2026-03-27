@@ -1,11 +1,171 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useAppStore } from '../store'
+
+function scoreDiff(strokes: number, par: number): string {
+  const d = strokes - par
+  if (d === 0) return 'E'
+  return d > 0 ? `+${d}` : `${d}`
+}
+
+function scoreColor(strokes: number, par: number): string {
+  const d = strokes - par
+  if (strokes === 1 || d <= -2) return 'text-gold font-bold'
+  if (d === -1) return 'text-forest-mid font-semibold'
+  if (d === 0) return 'text-gray-700'
+  if (d === 1) return 'text-orange-600'
+  return 'text-red-600 font-semibold'
+}
 
 export default function Summary() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const rounds = useAppStore(s => s.rounds)
+  const deleteRound = useAppStore(s => s.deleteRound)
+  const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
+
+  const round = rounds.find(r => r.id === id)
+
+  if (!round) {
+    return (
+      <main className="flex flex-col flex-1 items-center justify-center p-6">
+        <p className="text-warm-gray text-lg mb-4">Round not found.</p>
+        <Link to="/" className="text-forest underline">Go home</Link>
+      </main>
+    )
+  }
+
+  const date = new Date(round.startedAt).toLocaleDateString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  })
+
+  const playedHoles = round.holes.filter(h => h.shots.length > 0)
+  const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.length, 0)
+  const totalPar = round.holes.reduce((s, h) => s + h.par, 0)
+  const playedPar = playedHoles.reduce((s, h) => s + h.par, 0)
+  const diff = totalStrokes - playedPar
+
+  // Score breakdown
+  const counts = { ace: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }
+  for (const h of playedHoles) {
+    const d = h.shots.length - h.par
+    if (h.shots.length === 1) counts.ace++
+    else if (d <= -2) counts.eagle++
+    else if (d === -1) counts.birdie++
+    else if (d === 0) counts.par++
+    else if (d === 1) counts.bogey++
+    else if (d === 2) counts.double++
+    else counts.worse++
+  }
+
+  function handleDelete() {
+    deleteRound(round!.id)
+    navigate('/')
+  }
+
+  function handleResume() {
+    setActiveRoundId(round!.id)
+    navigate('/round')
+  }
+
   return (
-    <main className="flex flex-col flex-1 p-6">
-      <h1 className="text-2xl font-bold text-forest">Round Summary</h1>
-      <p className="text-warm-gray mt-2">Round #{id}</p>
+    <main className="flex flex-col flex-1 p-4 gap-5 max-w-lg mx-auto w-full">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-forest">{round.courseName}</h1>
+        <p className="text-warm-gray text-sm">{round.playerName} · {date} · {round.tees} tees</p>
+      </div>
+
+      {/* Score summary card */}
+      <div className="bg-forest rounded-2xl p-5 text-cream flex items-center justify-between shadow-md">
+        <div>
+          <div className="text-5xl font-black">{totalStrokes || '—'}</div>
+          <div className="text-forest-light text-sm mt-1">
+            {playedHoles.length} of {round.holeCount} holes · Par {totalPar}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className={`text-3xl font-black ${diff > 0 ? 'text-red-300' : diff < 0 ? 'text-green-300' : 'text-cream'}`}>
+            {totalStrokes > 0 ? scoreDiff(totalStrokes, playedPar) : '—'}
+          </div>
+          <div className="text-forest-light text-sm mt-1">vs par {playedPar}</div>
+        </div>
+      </div>
+
+      {/* Score breakdown */}
+      {totalStrokes > 0 && (
+        <div className="grid grid-cols-4 gap-2 text-center text-sm">
+          {counts.ace > 0 && <div className="bg-gold/20 rounded-xl p-2"><div className="font-bold text-gold">{counts.ace}</div><div className="text-warm-gray text-xs">Ace</div></div>}
+          {counts.eagle > 0 && <div className="bg-gold/10 rounded-xl p-2"><div className="font-bold text-gold">{counts.eagle}</div><div className="text-warm-gray text-xs">Eagle</div></div>}
+          {counts.birdie > 0 && <div className="bg-forest/10 rounded-xl p-2"><div className="font-bold text-forest-mid">{counts.birdie}</div><div className="text-warm-gray text-xs">Birdie</div></div>}
+          <div className="bg-cream-dark rounded-xl p-2"><div className="font-bold text-gray-700">{counts.par}</div><div className="text-warm-gray text-xs">Par</div></div>
+          {counts.bogey > 0 && <div className="bg-orange-50 rounded-xl p-2"><div className="font-bold text-orange-600">{counts.bogey}</div><div className="text-warm-gray text-xs">Bogey</div></div>}
+          {counts.double > 0 && <div className="bg-red-50 rounded-xl p-2"><div className="font-bold text-red-600">{counts.double}</div><div className="text-warm-gray text-xs">Double</div></div>}
+          {counts.worse > 0 && <div className="bg-red-100 rounded-xl p-2"><div className="font-bold text-red-700">{counts.worse}</div><div className="text-warm-gray text-xs">Worse</div></div>}
+        </div>
+      )}
+
+      {/* Hole-by-hole scorecard */}
+      <div className="overflow-x-auto rounded-xl border border-cream-dark bg-white">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-forest text-cream">
+              <th className="px-3 py-2 text-left">Hole</th>
+              <th className="px-3 py-2 text-center">Par</th>
+              <th className="px-3 py-2 text-center">Score</th>
+              <th className="px-3 py-2 text-center">+/-</th>
+            </tr>
+          </thead>
+          <tbody>
+            {round.holes.map(h => {
+              const s = h.shots.length
+              return (
+                <tr key={h.number} className="border-t border-cream-dark">
+                  <td className="px-3 py-2 font-medium">{h.number}</td>
+                  <td className="px-3 py-2 text-center text-warm-gray">{h.par}</td>
+                  <td className="px-3 py-2 text-center font-bold">{s > 0 ? s : '—'}</td>
+                  <td className={`px-3 py-2 text-center ${s > 0 ? scoreColor(s, h.par) : 'text-warm-gray'}`}>
+                    {s > 0 ? scoreDiff(s, h.par) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-forest bg-cream-dark font-bold">
+              <td className="px-3 py-2">Total</td>
+              <td className="px-3 py-2 text-center">{totalPar}</td>
+              <td className="px-3 py-2 text-center">{totalStrokes || '—'}</td>
+              <td className={`px-3 py-2 text-center ${diff > 0 ? 'text-red-600' : diff < 0 ? 'text-forest-mid' : 'text-gray-700'}`}>
+                {totalStrokes > 0 ? scoreDiff(totalStrokes, playedPar) : '—'}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3 pb-4">
+        {!round.completedAt && (
+          <button
+            onClick={handleResume}
+            className="flex-1 bg-forest text-cream py-3 rounded-xl font-semibold touch-target"
+          >
+            Resume Round
+          </button>
+        )}
+        <Link
+          to="/"
+          className="flex-1 border-2 border-forest text-forest py-3 rounded-xl font-semibold text-center touch-target"
+        >
+          Home
+        </Link>
+        <button
+          onClick={handleDelete}
+          className="px-4 py-3 text-red-600 border-2 border-red-200 rounded-xl font-semibold touch-target"
+        >
+          Delete
+        </button>
+      </div>
     </main>
   )
 }
