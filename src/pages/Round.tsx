@@ -236,10 +236,12 @@ export default function Round() {
                   const clubShots = hole.shots
                     .map((s, i) => ({ ...s, index: i }))
                     .filter(s => s.clubId === club.id)
-                  const count = clubShots.length
-                  const isUsed = count > 0
+                  const isUsed = clubShots.length > 0
                   const isPutter = putterIds.has(club.id)
-                  const countLabel = count >= 10 ? '9+' : String(count)
+                  // Show shot numbers in the overall sequence (e.g. Driver=1, PW=3,4)
+                  const shotNums = clubShots.map(s => s.index + 1)
+                  // Badge shows last shot number for this club (most recent use in sequence)
+                  const badgeLabel = shotNums.length === 0 ? '' : shotNums[shotNums.length - 1] >= 10 ? '9+' : String(shotNums[shotNums.length - 1])
                   return (
                     <button
                       key={club.id}
@@ -260,7 +262,7 @@ export default function Round() {
                           className="absolute -top-[22px] -right-[22px] w-11 h-11 flex items-center justify-center z-10"
                         >
                           <span className="w-7 h-7 rounded-full bg-white text-[#2d5a27] border-2 border-[#2d5a27] text-xs font-bold shadow-sm flex items-center justify-center active:scale-110 transition-transform">
-                            {countLabel}
+                            {badgeLabel}
                           </span>
                         </div>
                       )}
@@ -401,6 +403,7 @@ export default function Round() {
     </main>
   )
 }
+
 
 
 
