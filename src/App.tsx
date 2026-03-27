@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import Home from './pages/Home'
 import Setup from './pages/Setup'
 import Round from './pages/Round'
+import RoundUndoB from './pages/RoundUndoB'
 import Summary from './pages/Summary'
 import Bag from './pages/Bag'
 import Courses from './pages/Courses'
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/setup" element={<Setup />} />
           <Route path="/round" element={<Round />} />
+          <Route path="/round-b" element={<RoundUndoB />} />
           <Route path="/summary/:id" element={<Summary />} />
           <Route path="/bag" element={<Bag />} />
           <Route path="/courses" element={<Courses />} />
