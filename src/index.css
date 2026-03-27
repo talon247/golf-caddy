@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-forest: #2d5016;
+  --color-forest-light: #3d6b20;
+  --color-forest-dark: #1e3610;
+  --color-cream: #faf7f2;
+  --color-warm-gray: #6b7280;
+
+  --font-size-base: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-size: 18px;
+  background-color: #faf7f2;
+  color: #1f2937;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Prevent pinch-zoom on inputs */
+input,
+select,
+textarea {
+  font-size: 16px;
+  touch-action: manipulation;
+}
+
+/* Min touch target utility */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+}

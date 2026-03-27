@@ -1,0 +1,52 @@
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import Home from './pages/Home'
+import Setup from './pages/Setup'
+import Round from './pages/Round'
+import Summary from './pages/Summary'
+import Bag from './pages/Bag'
+
+function Header() {
+  return (
+    <header className="bg-forest text-cream px-4 py-3 flex items-center justify-between shadow-md">
+      <span className="font-bold text-lg tracking-wide">⛳ Golf Caddy</span>
+      <nav className="flex gap-4 text-sm">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
+          }
+        >
+          Home
+        </NavLink>
+        <NavLink
+          to="/bag"
+          className={({ isActive }) =>
+            `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
+          }
+        >
+          Bag
+        </NavLink>
+      </nav>
+    </header>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="flex flex-col min-h-svh bg-cream">
+        <Header />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/round" element={<Round />} />
+          <Route path="/summary/:id" element={<Summary />} />
+          <Route path="/bag" element={<Bag />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
+  )
+}
+
+export default App
