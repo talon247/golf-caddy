@@ -13,6 +13,8 @@ export interface Hole {
   number: number
   par: number
   shots: Shot[]
+  putts?: number
+  fairwayHit?: boolean
 }
 
 export interface Round {

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
+import PuttsInput from '../components/PuttsInput'
+import FairwayToggle from '../components/FairwayToggle'
 
 type Tab = 'round' | 'scorecard'
 
@@ -35,7 +37,7 @@ function scoreColor(strokes: number, par: number): string {
 
 export default function Round() {
   const navigate = useNavigate()
-  const { rounds, activeRoundId, addShot, removeLastShot, setHolePar, completeRound, abandonRound } = useAppStore()
+  const { rounds, activeRoundId, addShot, removeLastShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
   const bag = useAppStore(s => s.clubBag).sort((a, b) => a.order - b.order)
 
   const round = rounds.find(r => r.id === activeRoundId)
@@ -61,6 +63,12 @@ export default function Round() {
   const strokes = hole.shots.length
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
+
+  // GIR: derived, never entered directly
+  const gir =
+    strokes > 0 && hole.putts !== undefined
+      ? strokes - hole.putts <= hole.par - 2
+      : undefined
 
   // Running totals
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
@@ -199,6 +207,28 @@ export default function Round() {
               >
                 Undo last shot
               </button>
+            )}
+          </div>
+
+          {/* Per-hole stats */}
+          <div className="bg-white rounded-2xl border border-cream-dark px-4 py-3 flex flex-col gap-3 shadow-sm">
+            <PuttsInput
+              value={hole.putts}
+              onChange={(putts) => setPutts(round!.id, currentHole, putts)}
+            />
+            {hole.par >= 4 && (
+              <FairwayToggle
+                value={hole.fairwayHit}
+                onChange={(hit) => setFairwayHit(round!.id, currentHole, hit)}
+              />
+            )}
+            {gir !== undefined && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-warm-gray w-14">GIR</span>
+                <span className={`text-sm font-semibold ${gir ? 'text-forest-mid' : 'text-red-600'}`}>
+                  {gir ? 'Yes' : 'No'}
+                </span>
+              </div>
             )}
           </div>
 
