@@ -81,14 +81,25 @@ export default function Round() {
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
+  function vibrate(pattern: number | number[]) {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(pattern)
+    }
+  }
+
   function handleClubTap(clubId: string) {
+    addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
+    vibrate(40)
+  }
+
+  function handleBadgeTap(e: React.MouseEvent, clubId: string) {
+    e.stopPropagation()
     const clubShots = hole.shots
       .map((s, i) => ({ ...s, index: i }))
       .filter(s => s.clubId === clubId)
     if (clubShots.length > 0) {
       removeShot(round!.id, currentHole, clubShots[clubShots.length - 1].index)
-    } else {
-      addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
+      vibrate([20, 20])
     }
   }
 
@@ -234,8 +245,10 @@ export default function Round() {
                   const clubShots = hole.shots
                     .map((s, i) => ({ ...s, index: i }))
                     .filter(s => s.clubId === club.id)
-                  const isUsed = clubShots.length > 0
-                  const shotNumbers = clubShots.map(s => s.index + 1)
+                  const count = clubShots.length
+                  const isUsed = count > 0
+                  const isPutter = putterIds.has(club.id)
+                  const countLabel = count >= 10 ? '9+' : String(count)
                   return (
                     <button
                       key={club.id}
@@ -247,17 +260,18 @@ export default function Round() {
                       }`}
                     >
                       {club.name}
-                      {shotNumbers.length > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 flex gap-0.5">
-                          {shotNumbers.map((n, i) => (
-                            <span
-                              key={i}
-                              className="bg-white text-[#2d5a27] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm border border-[#2d5a27]"
-                            >
-                              {n}
-                            </span>
-                          ))}
-                        </span>
+                      {isUsed && !isPutter && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => handleBadgeTap(e, club.id)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleBadgeTap(e as unknown as React.MouseEvent, club.id) }}
+                          className="absolute -top-[22px] -right-[22px] w-11 h-11 flex items-center justify-center z-10"
+                        >
+                          <span className="w-7 h-7 rounded-full bg-white text-[#2d5a27] border-2 border-[#2d5a27] text-xs font-bold shadow-sm flex items-center justify-center active:scale-110 transition-transform">
+                            {countLabel}
+                          </span>
+                        </div>
                       )}
                     </button>
                   )
