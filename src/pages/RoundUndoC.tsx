@@ -268,7 +268,7 @@ export default function RoundUndoC() {
 
             {/* Slide-out tray */}
             <div
-              className={`overflow-hidden transition-all duration-250 ease-out ${trayOpen ? 'max-h-[64px]' : 'max-h-0'}`}
+              className={`overflow-hidden transition-all duration-[250ms] ease-out ${trayOpen ? 'max-h-[64px]' : 'max-h-0'}`}
             >
               <div
                 role="list"
