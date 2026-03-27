@@ -23,6 +23,7 @@ interface StoreState {
   setHolePar: (roundId: string, holeNumber: number, par: number) => void
   completeRound: (roundId: string) => void
   deleteRound: (roundId: string) => void
+  abandonRound: (roundId: string) => void
 }
 
 const initial = loadState()
@@ -161,6 +162,13 @@ export const useAppStore = create<StoreState>((set, get) => ({
   },
 
   deleteRound: (roundId) => {
+    const rounds = get().rounds.filter(r => r.id !== roundId)
+    const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
+    set({ rounds, activeRoundId })
+    persist({ ...get(), rounds, activeRoundId })
+  },
+
+  abandonRound: (roundId) => {
     const rounds = get().rounds.filter(r => r.id !== roundId)
     const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
     set({ rounds, activeRoundId })

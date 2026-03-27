@@ -2,18 +2,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { buildHoles } from '../storage'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Setup() {
   const navigate = useNavigate()
-  const { addRound, setActiveRoundId, completeRound, activeRoundId } = useAppStore()
+  const { addRound, setActiveRoundId, completeRound, activeRoundId, clubBag } = useAppStore()
 
   const [courseName, setCourseName] = useState('')
   const [playerName, setPlayerName] = useState('')
   const [tees, setTees] = useState('White')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
+  const [showBagWarning, setShowBagWarning] = useState(false)
 
-  function handleStart(e: React.FormEvent) {
-    e.preventDefault()
+  function startRound() {
     if (activeRoundId) {
       const confirmed = window.confirm(
         'You have an active round in progress. Starting a new round will abandon it. Continue?'
@@ -33,6 +34,15 @@ export default function Setup() {
     })
     setActiveRoundId(id)
     navigate('/round')
+  }
+
+  function handleStart(e: React.FormEvent) {
+    e.preventDefault()
+    if (clubBag.length === 0) {
+      setShowBagWarning(true)
+      return
+    }
+    startRound()
   }
 
   return (
@@ -111,6 +121,23 @@ export default function Setup() {
           Start Round →
         </button>
       </form>
+
+      {showBagWarning && (
+        <ConfirmModal
+          title="Your bag is empty"
+          message="Add clubs before starting a round so you can track shots by club. You can still start without clubs."
+          confirmLabel="Start Anyway"
+          cancelLabel="Go to Bag"
+          onConfirm={() => {
+            setShowBagWarning(false)
+            startRound()
+          }}
+          onCancel={() => {
+            setShowBagWarning(false)
+            navigate('/bag')
+          }}
+        />
+      )}
     </main>
   )
 }
