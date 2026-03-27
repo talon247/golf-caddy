@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 
 function scoreDiff(strokes: number, par: number): string {
@@ -64,6 +64,7 @@ export default function Round() {
   const runningDiff = totalStrokes - totalPar
 
   function handleClubTap(clubId: string) {
+    // eslint-disable-next-line react-hooks/purity
     addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
   }
 
@@ -221,17 +222,23 @@ export default function Round() {
       {/* Club quick-tap grid */}
       <div>
         <p className="text-xs text-warm-gray uppercase tracking-wide mb-2">Tap club used</p>
-        <div className="grid grid-cols-4 gap-2">
-          {bag.map(club => (
-            <button
-              key={club.id}
-              onClick={() => handleClubTap(club.id)}
-              className="bg-white border-2 border-cream-dark rounded-xl py-3 text-sm font-semibold text-forest active:bg-forest active:text-cream active:border-forest transition-colors touch-target"
-            >
-              {club.name}
-            </button>
-          ))}
-        </div>
+        {bag.length === 0 ? (
+          <p className="text-warm-gray text-sm">
+            Your bag is empty — <Link to="/bag" className="underline text-forest">go to Bag</Link> to add clubs.
+          </p>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {bag.map(club => (
+              <button
+                key={club.id}
+                onClick={() => handleClubTap(club.id)}
+                className="bg-white border-2 border-cream-dark rounded-xl py-3 text-sm font-semibold text-forest active:bg-forest active:text-cream active:border-forest transition-colors touch-target"
+              >
+                {club.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer actions */}

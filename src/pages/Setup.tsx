@@ -5,7 +5,7 @@ import { buildHoles } from '../storage'
 
 export default function Setup() {
   const navigate = useNavigate()
-  const { addRound, setActiveRoundId } = useAppStore()
+  const { addRound, setActiveRoundId, completeRound, activeRoundId } = useAppStore()
 
   const [courseName, setCourseName] = useState('')
   const [playerName, setPlayerName] = useState('')
@@ -14,6 +14,13 @@ export default function Setup() {
 
   function handleStart(e: React.FormEvent) {
     e.preventDefault()
+    if (activeRoundId) {
+      const confirmed = window.confirm(
+        'You have an active round in progress. Starting a new round will abandon it. Continue?'
+      )
+      if (!confirmed) return
+      completeRound(activeRoundId)
+    }
     const id = crypto.randomUUID()
     addRound({
       id,

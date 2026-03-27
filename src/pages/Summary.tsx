@@ -80,7 +80,7 @@ export default function Summary() {
         <div>
           <div className="text-5xl font-black">{totalStrokes || '—'}</div>
           <div className="text-forest-light text-sm mt-1">
-            {playedHoles.length} of {round.holeCount} holes · Par {totalPar}
+            {playedHoles.length} of {round.holeCount} holes · Par {playedPar}
           </div>
         </div>
         <div className="text-right">
