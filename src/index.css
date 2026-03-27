@@ -1,11 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-forest: #2d5016;
-  --color-forest-light: #3d6b20;
-  --color-forest-dark: #1e3610;
-  --color-cream: #faf7f2;
+  --color-forest: #2d5a27;
+  --color-forest-mid: #4a7c59;
+  --color-forest-light: #86b89a;
+  --color-cream: #f5f0e8;
+  --color-cream-dark: #e8e0d0;
   --color-warm-gray: #6b7280;
+  --color-gold: #c4a35a;
 
   --font-size-base: 18px;
 }
@@ -17,7 +19,7 @@
 body {
   margin: 0;
   font-size: 18px;
-  background-color: #faf7f2;
+  background-color: #f5f0e8;
   color: #1f2937;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -41,4 +43,12 @@ textarea {
 .touch-target {
   min-height: 48px;
   min-width: 48px;
+}
+
+/* Safe area insets for notched phones */
+#root {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
