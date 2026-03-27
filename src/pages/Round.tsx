@@ -88,18 +88,32 @@ export default function Round() {
   }
 
   function handleClubTap(clubId: string) {
-    addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
-    vibrate(40)
+    if (putterIds.has(clubId)) {
+      // Putter tap = increment putt counter (not a shot)
+      const current = hole.putts ?? 0
+      if (current < 9) setPutts(round!.id, currentHole, current + 1)
+      vibrate(40)
+    } else {
+      addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
+      vibrate(40)
+    }
   }
 
   function handleBadgeTap(e: React.MouseEvent, clubId: string) {
     e.stopPropagation()
-    const clubShots = hole.shots
-      .map((s, i) => ({ ...s, index: i }))
-      .filter(s => s.clubId === clubId)
-    if (clubShots.length > 0) {
-      removeShot(round!.id, currentHole, clubShots[clubShots.length - 1].index)
+    if (putterIds.has(clubId)) {
+      // Putter badge tap = decrement putt counter
+      const current = hole.putts ?? 0
+      if (current > 0) setPutts(round!.id, currentHole, current - 1)
       vibrate([20, 20])
+    } else {
+      const clubShots = hole.shots
+        .map((s, i) => ({ ...s, index: i }))
+        .filter(s => s.clubId === clubId)
+      if (clubShots.length > 0) {
+        removeShot(round!.id, currentHole, clubShots[clubShots.length - 1].index)
+        vibrate([20, 20])
+      }
     }
   }
 
@@ -236,12 +250,16 @@ export default function Round() {
                   const clubShots = hole.shots
                     .map((s, i) => ({ ...s, index: i }))
                     .filter(s => s.clubId === club.id)
-                  const isUsed = clubShots.length > 0
                   const isPutter = putterIds.has(club.id)
+                  // Putter: driven by hole.putts counter, not shots array
+                  const putterCount = isPutter ? (hole.putts ?? 0) : 0
+                  const isUsed = isPutter ? putterCount > 0 : clubShots.length > 0
                   // Show shot numbers in the overall sequence (e.g. Driver=1, PW=3,4)
                   const shotNums = clubShots.map(s => s.index + 1)
-                  // Badge shows last shot number for this club (most recent use in sequence)
-                  const badgeLabel = shotNums.length === 0 ? '' : shotNums[shotNums.length - 1] >= 10 ? '9+' : String(shotNums[shotNums.length - 1])
+                  // Badge: putter shows putt count; other clubs show last shot sequence number
+                  const badgeLabel = isPutter
+                    ? (putterCount >= 10 ? '9+' : String(putterCount))
+                    : shotNums.length === 0 ? '' : shotNums[shotNums.length - 1] >= 10 ? '9+' : String(shotNums[shotNums.length - 1])
                   return (
                     <button
                       key={club.id}
@@ -253,7 +271,7 @@ export default function Round() {
                       }`}
                     >
                       {club.name}
-                      {isUsed && !isPutter && (
+                      {isUsed && (
                         <div
                           role="button"
                           tabIndex={0}
@@ -403,6 +421,7 @@ export default function Round() {
     </main>
   )
 }
+
 
 
 
