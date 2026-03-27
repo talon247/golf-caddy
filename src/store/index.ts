@@ -22,6 +22,7 @@ interface StoreState {
   updateRound: (round: Round) => void
   addShot: (roundId: string, holeNumber: number, shot: Shot) => void
   removeLastShot: (roundId: string, holeNumber: number) => void
+  removeShot: (roundId: string, holeNumber: number, shotIndex: number) => void
   setHolePar: (roundId: string, holeNumber: number, par: number) => void
   setPutts: (roundId: string, holeNumber: number, putts: number) => void
   setFairwayHit: (roundId: string, holeNumber: number, hit: boolean) => void
@@ -134,6 +135,22 @@ export const useAppStore = create<StoreState>((set, get) => ({
         holes: r.holes.map(h =>
           h.number === holeNumber
             ? { ...h, shots: h.shots.slice(0, -1) }
+            : h,
+        ),
+      }
+    })
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
+
+  removeShot: (roundId, holeNumber, shotIndex) => {
+    const rounds = get().rounds.map(r => {
+      if (r.id !== roundId) return r
+      return {
+        ...r,
+        holes: r.holes.map(h =>
+          h.number === holeNumber
+            ? { ...h, shots: h.shots.filter((_, i) => i !== shotIndex) }
             : h,
         ),
       }

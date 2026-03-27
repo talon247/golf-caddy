@@ -37,7 +37,7 @@ function scoreColor(strokes: number, par: number): string {
 
 export default function Round() {
   const navigate = useNavigate()
-  const { rounds, activeRoundId, addShot, removeLastShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
+  const { rounds, activeRoundId, addShot, removeLastShot, removeShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
   const bag = useAppStore(s => s.clubBag).sort((a, b) => a.order - b.order)
 
   const round = rounds.find(r => r.id === activeRoundId)
@@ -77,8 +77,14 @@ export default function Round() {
   const runningDiff = totalStrokes - totalPar
 
   function handleClubTap(clubId: string) {
-    // eslint-disable-next-line react-hooks/purity
-    addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
+    const clubShots = hole.shots
+      .map((s, i) => ({ ...s, index: i }))
+      .filter(s => s.clubId === clubId)
+    if (clubShots.length > 0) {
+      removeShot(round!.id, currentHole, clubShots[clubShots.length - 1].index)
+    } else {
+      addShot(round!.id, currentHole, { clubId, timestamp: Date.now() })
+    }
   }
 
   function handleUndo() {
@@ -219,15 +225,38 @@ export default function Round() {
               </p>
             ) : (
               <div className="grid grid-cols-4 gap-2">
-                {bag.map(club => (
-                  <button
-                    key={club.id}
-                    onClick={() => handleClubTap(club.id)}
-                    className="bg-white border-2 border-cream-dark rounded-xl py-3 text-sm font-semibold text-forest active:bg-forest active:text-cream active:border-forest transition-colors touch-target"
-                  >
-                    {club.name}
-                  </button>
-                ))}
+                {bag.map(club => {
+                  const clubShots = hole.shots
+                    .map((s, i) => ({ ...s, index: i }))
+                    .filter(s => s.clubId === club.id)
+                  const isUsed = clubShots.length > 0
+                  const shotNumbers = clubShots.map(s => s.index + 1)
+                  return (
+                    <button
+                      key={club.id}
+                      onClick={() => handleClubTap(club.id)}
+                      className={`relative rounded-xl py-3 text-sm font-semibold border-2 active:scale-95 transition-transform touch-target ${
+                        isUsed
+                          ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
+                          : 'bg-white border-cream-dark text-forest'
+                      }`}
+                    >
+                      {club.name}
+                      {shotNumbers.length > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex gap-0.5">
+                          {shotNumbers.map((n, i) => (
+                            <span
+                              key={i}
+                              className="bg-white text-[#2d5a27] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm border border-[#2d5a27]"
+                            >
+                              {n}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
