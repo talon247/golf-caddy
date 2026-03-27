@@ -61,19 +61,19 @@ export default function Round() {
   }
 
   const hole = round.holes.find(h => h.number === currentHole)!
-  const strokes = hole.shots.length
+  const strokes = hole.shots.length + (hole.putts ?? 0)
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
 
   // GIR: derived, never entered directly
   const gir =
-    strokes > 0 && hole.putts !== undefined
-      ? strokes - hole.putts <= hole.par - 2
+    hole.shots.length > 0 && hole.putts !== undefined
+      ? hole.shots.length <= hole.par - 2
       : undefined
 
   // Running totals
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.length, 0)
+  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.length + (h.putts ?? 0), 0)
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
@@ -392,3 +392,4 @@ export default function Round() {
     </main>
   )
 }
+

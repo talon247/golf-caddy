@@ -40,7 +40,7 @@ export default function Summary() {
   })
 
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.length, 0)
+  const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.length + (h.putts ?? 0), 0)
   const totalPar = round.holes.reduce((s, h) => s + h.par, 0)
   const playedPar = playedHoles.reduce((s, h) => s + h.par, 0)
   const diff = totalStrokes - playedPar
@@ -48,7 +48,7 @@ export default function Summary() {
   // Score breakdown
   const counts = { ace: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }
   for (const h of playedHoles) {
-    const d = h.shots.length - h.par
+    const d = (h.shots.length + (h.putts ?? 0)) - h.par
     if (h.shots.length === 1) counts.ace++
     else if (d <= -2) counts.eagle++
     else if (d === -1) counts.birdie++
@@ -155,7 +155,7 @@ export default function Summary() {
           </thead>
           <tbody>
             {round.holes.map(h => {
-              const s = h.shots.length
+              const s = h.shots.length + (h.putts ?? 0)
               return (
                 <tr key={h.number} className="border-t border-cream-dark">
                   <td className="px-3 py-2 font-medium">{h.number}</td>
@@ -207,3 +207,4 @@ export default function Summary() {
     </main>
   )
 }
+

@@ -10,7 +10,9 @@ export function calcPuttsAvg(holes: Hole[]): number | null {
 
 /**
  * GIR (Greens in Regulation) percentage.
- * A hole is GIR if (total shots - putts) <= (par - 2).
+ * A hole is GIR if approach shots (club taps, excluding putts) <= (par - 2).
+ * Since putts are tracked separately via the putt counter (not as club taps),
+ * approach shots = shots.length (all club taps before putting).
  * Only counts holes that have been played and have putts data.
  */
 export function calcGIR(holes: Hole[]): { pct: number; hits: number; total: number } | null {
@@ -18,7 +20,8 @@ export function calcGIR(holes: Hole[]): { pct: number; hits: number; total: numb
   if (eligible.length === 0) return null
   let hits = 0
   for (const h of eligible) {
-    const approachShots = h.shots.length - (h.putts as number)
+    // approach shots = club taps (putts tracked separately, not in shots array)
+    const approachShots = h.shots.length
     if (approachShots <= h.par - 2) hits++
   }
   return { pct: (hits / eligible.length) * 100, hits, total: eligible.length }
