@@ -11,6 +11,8 @@ export default function Home() {
   const navigate = useNavigate()
   const rounds = useAppStore(s => s.rounds)
   const activeRoundId = useAppStore(s => s.activeRoundId)
+  const bag = useAppStore(s => s.clubBag)
+  const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
 
   const activeRound = rounds.find(r => r.id === activeRoundId)
   const pastRounds = rounds.filter(r => r.completedAt)
@@ -36,7 +38,7 @@ export default function Home() {
           </div>
           {(() => {
             const played = activeRound.holes.filter(h => h.shots.length > 0)
-            const totalStrokes = played.reduce((s, h) => s + h.shots.length, 0)
+            const totalStrokes = played.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0), 0)
             const playedPar = played.reduce((s, h) => s + h.par, 0)
             return (
               <div className="flex items-center justify-between mt-3">
@@ -76,7 +78,7 @@ export default function Home() {
           <ul className="flex flex-col gap-2">
             {pastRounds.map(round => {
               const played = round.holes.filter(h => h.shots.length > 0)
-              const totalStrokes = played.reduce((s, h) => s + h.shots.length, 0)
+              const totalStrokes = played.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0), 0)
               const playedPar = played.reduce((s, h) => s + h.par, 0)
               const diff = totalStrokes - playedPar
               const date = new Date(round.startedAt).toLocaleDateString(undefined, {
@@ -136,3 +138,4 @@ export default function Home() {
     </main>
   )
 }
+
