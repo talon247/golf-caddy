@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
+import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -57,6 +58,11 @@ export default function Summary() {
     else counts.worse++
   }
 
+  const puttsAvg = calcPuttsAvg(round.holes)
+  const gir = calcGIR(round.holes)
+  const fairways = calcFairwaysHit(round.holes)
+  const hasStats = puttsAvg !== null || gir !== null || fairways !== null
+
   function handleDelete() {
     deleteRound(round!.id)
     navigate('/')
@@ -101,6 +107,38 @@ export default function Summary() {
           {counts.bogey > 0 && <div className="bg-orange-50 rounded-xl p-2"><div className="font-bold text-orange-600">{counts.bogey}</div><div className="text-warm-gray text-xs">Bogey</div></div>}
           {counts.double > 0 && <div className="bg-red-50 rounded-xl p-2"><div className="font-bold text-red-600">{counts.double}</div><div className="text-warm-gray text-xs">Double</div></div>}
           {counts.worse > 0 && <div className="bg-red-100 rounded-xl p-2"><div className="font-bold text-red-700">{counts.worse}</div><div className="text-warm-gray text-xs">Worse</div></div>}
+        </div>
+      )}
+
+      {/* Enhanced stats */}
+      {hasStats && (
+        <div>
+          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-2">Stats</h2>
+          <div className="grid grid-cols-3 gap-2 text-center text-sm">
+            {puttsAvg !== null && (
+              <div className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className="text-xl font-black text-forest">{puttsAvg.toFixed(1)}</div>
+                <div className="text-warm-gray text-xs mt-0.5">Putts / hole</div>
+                <div className="text-warm-gray text-xs">
+                  {round.holes.filter(h => h.putts !== undefined).length} of {round.holeCount} tracked
+                </div>
+              </div>
+            )}
+            {gir !== null && (
+              <div className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className="text-xl font-black text-forest">{Math.round(gir.pct)}%</div>
+                <div className="text-warm-gray text-xs mt-0.5">GIR</div>
+                <div className="text-warm-gray text-xs">{gir.hits} of {gir.total} holes</div>
+              </div>
+            )}
+            {fairways !== null && (
+              <div className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className="text-xl font-black text-forest">{Math.round(fairways.pct)}%</div>
+                <div className="text-warm-gray text-xs mt-0.5">Fairways</div>
+                <div className="text-warm-gray text-xs">{fairways.hits} of {fairways.total} holes</div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
