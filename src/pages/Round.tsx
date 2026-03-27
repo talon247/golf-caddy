@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { XCircle } from 'lucide-react'
+import { XCircle, Delete } from 'lucide-react'
 import { useAppStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
@@ -217,19 +217,25 @@ export default function Round() {
           </div>
 
           {/* Stroke counter */}
-          <div className="bg-white rounded-2xl border border-cream-dark p-5 flex flex-col items-center gap-2 shadow-sm">
-            <div className="text-6xl font-black text-forest">{strokes}</div>
-            <div className={`text-lg font-semibold ${strokes > 0 ? scoreColor(strokes, hole.par) : 'text-warm-gray'}`}>
+          <div className="relative bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-5 h-36 flex flex-col items-center justify-center gap-1 shadow-sm">
+            <div className={`text-6xl font-black leading-none h-16 flex items-center justify-center ${strokes > 0 ? 'text-[#2d5a27]' : 'text-gray-500'}`}>
+              {strokes}
+            </div>
+            <div className={`text-lg font-semibold h-7 flex items-center justify-center text-center ${strokes > 0 ? scoreColor(strokes, hole.par) : 'text-gray-400'}`}>
               {strokes > 0 ? scoreName(strokes, hole.par) : 'Tap a club to start'}
             </div>
-            {strokes > 0 && (
-              <button
-                onClick={handleUndo}
-                className="mt-1 text-sm text-warm-gray underline touch-target"
-              >
-                Undo last shot
-              </button>
-            )}
+            <button
+              onClick={handleUndo}
+              disabled={strokes === 0}
+              aria-label="Remove last shot"
+              className={`absolute top-3 right-3 flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] rounded-xl transition-all ${
+                strokes > 0
+                  ? 'text-[#2d5a27] hover:bg-[#f0f7ee] active:bg-[#e8f5e4] active:scale-95'
+                  : 'text-[#e5e1d8] cursor-default pointer-events-none'
+              }`}
+            >
+              <Delete size={22} />
+            </button>
           </div>
 
           {/* Club quick-tap grid */}
@@ -240,7 +246,7 @@ export default function Round() {
                 Your bag is empty — <Link to="/bag" className="underline text-forest">go to Bag</Link> to add clubs.
               </p>
             ) : (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2 pt-4">
                 {bag.map(club => {
                   const clubShots = hole.shots
                     .map((s, i) => ({ ...s, index: i }))
@@ -253,7 +259,7 @@ export default function Round() {
                     <button
                       key={club.id}
                       onClick={() => handleClubTap(club.id)}
-                      className={`relative rounded-xl py-3 text-sm font-semibold border-2 active:scale-95 transition-transform touch-target ${
+                      className={`relative h-[52px] w-full rounded-xl text-sm font-semibold border-2 active:scale-95 transition-transform flex items-center justify-center touch-target ${
                         isUsed
                           ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
                           : 'bg-white border-cream-dark text-forest'
