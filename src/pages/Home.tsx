@@ -111,12 +111,18 @@ export default function Home() {
       )}
 
       {/* Quick links */}
-      <div className="flex gap-3 mt-auto">
+      <div className="flex gap-3 mt-auto flex-wrap">
         <Link
           to="/bag"
           className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
         >
           🏌️ My Bag
+        </Link>
+        <Link
+          to="/courses"
+          className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
+        >
+          📋 Courses
         </Link>
         {activeRound && (
           <Link

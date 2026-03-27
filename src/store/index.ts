@@ -1,3 +1,5 @@
+export { useCourseStore } from './courseStore'
+
 import { create } from 'zustand'
 import type { Club, Round, Shot } from '../types'
 import { loadState, saveState } from '../storage'

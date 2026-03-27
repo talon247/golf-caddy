@@ -4,6 +4,7 @@ import Setup from './pages/Setup'
 import Round from './pages/Round'
 import Summary from './pages/Summary'
 import Bag from './pages/Bag'
+import Courses from './pages/Courses'
 
 function Header() {
   return (
@@ -43,6 +44,7 @@ function App() {
           <Route path="/round" element={<Round />} />
           <Route path="/summary/:id" element={<Summary />} />
           <Route path="/bag" element={<Bag />} />
+          <Route path="/courses" element={<Courses />} />
         </Routes>
       </div>
     </BrowserRouter>

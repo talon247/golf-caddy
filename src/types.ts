@@ -17,9 +17,23 @@ export interface Hole {
   fairwayHit?: boolean
 }
 
+export interface CourseHole {
+  number: number
+  par: number
+  strokeIndex?: number
+}
+
+export interface Course {
+  id: string
+  name: string
+  holes: CourseHole[]
+  createdAt: string
+}
+
 export interface Round {
   id: string
   courseName: string
+  courseId?: string
   tees: string
   playerName: string
   holeCount: 9 | 18

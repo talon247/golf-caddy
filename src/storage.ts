@@ -1,4 +1,4 @@
-import type { AppState, Club, Hole } from './types'
+import type { AppState, Club, Course, Hole } from './types'
 
 const STORAGE_KEY = 'golf-caddy-state'
 
@@ -40,6 +40,27 @@ export function loadState(): AppState {
 export function saveState(state: AppState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Storage unavailable — silently ignore
+  }
+}
+
+const COURSES_KEY = 'golf-caddy-courses'
+
+export function loadCourses(): Course[] {
+  try {
+    const raw = localStorage.getItem(COURSES_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as Course[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveCourses(courses: Course[]): void {
+  try {
+    localStorage.setItem(COURSES_KEY, JSON.stringify(courses))
   } catch {
     // Storage unavailable — silently ignore
   }
