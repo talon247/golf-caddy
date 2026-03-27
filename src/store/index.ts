@@ -1,11 +1,104 @@
 import { create } from 'zustand'
+import type { Club, Round } from '../types'
+import { loadState, saveState } from '../storage'
 
-interface AppState {
-  currentRoundId: string | null
-  setCurrentRoundId: (id: string | null) => void
+interface StoreState {
+  clubBag: Club[]
+  rounds: Round[]
+  activeRoundId: string | undefined
+
+  // Club bag actions
+  addClub: (name: string) => string
+  removeClub: (id: string) => void
+  updateClubName: (id: string, name: string) => void
+  moveClubUp: (id: string) => void
+  moveClubDown: (id: string) => void
+
+  // Round actions
+  setActiveRoundId: (id: string | undefined) => void
+  addRound: (round: Round) => void
+  updateRound: (round: Round) => void
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  currentRoundId: null,
-  setCurrentRoundId: (id) => set({ currentRoundId: id }),
+const initial = loadState()
+
+function persist(state: Pick<StoreState, 'clubBag' | 'rounds' | 'activeRoundId'>) {
+  saveState({ clubBag: state.clubBag, rounds: state.rounds, activeRoundId: state.activeRoundId })
+}
+
+export const useAppStore = create<StoreState>((set, get) => ({
+  clubBag: initial.clubBag,
+  rounds: initial.rounds,
+  activeRoundId: initial.activeRoundId,
+
+  addClub: (name) => {
+    const id = crypto.randomUUID()
+    const clubs = get().clubBag
+    const newClub: Club = { id, name, order: clubs.length }
+    const updated = [...clubs, newClub]
+    set({ clubBag: updated })
+    persist({ ...get(), clubBag: updated })
+    return id
+  },
+
+  removeClub: (id) => {
+    const clubs = get().clubBag
+      .filter(c => c.id !== id)
+      .map((c, i) => ({ ...c, order: i }))
+    set({ clubBag: clubs })
+    persist({ ...get(), clubBag: clubs })
+  },
+
+  updateClubName: (id, name) => {
+    const clubs = get().clubBag.map(c => (c.id === id ? { ...c, name } : c))
+    set({ clubBag: clubs })
+    persist({ ...get(), clubBag: clubs })
+  },
+
+  moveClubUp: (id) => {
+    const sorted = [...get().clubBag].sort((a, b) => a.order - b.order)
+    const idx = sorted.findIndex(c => c.id === id)
+    if (idx <= 0) return
+    const above = sorted[idx - 1]
+    const current = sorted[idx]
+    const clubs = sorted.map(c => {
+      if (c.id === above.id) return { ...c, order: current.order }
+      if (c.id === current.id) return { ...c, order: above.order }
+      return c
+    }).sort((a, b) => a.order - b.order)
+    set({ clubBag: clubs })
+    persist({ ...get(), clubBag: clubs })
+  },
+
+  moveClubDown: (id) => {
+    const sorted = [...get().clubBag].sort((a, b) => a.order - b.order)
+    const idx = sorted.findIndex(c => c.id === id)
+    if (idx < 0 || idx >= sorted.length - 1) return
+    const below = sorted[idx + 1]
+    const current = sorted[idx]
+    const clubs = sorted.map(c => {
+      if (c.id === current.id) return { ...c, order: below.order }
+      if (c.id === below.id) return { ...c, order: current.order }
+      return c
+    }).sort((a, b) => a.order - b.order)
+    set({ clubBag: clubs })
+    persist({ ...get(), clubBag: clubs })
+  },
+
+  setActiveRoundId: (id) => {
+    set({ activeRoundId: id })
+    persist({ ...get(), activeRoundId: id })
+  },
+
+  addRound: (round) => {
+    const rounds = [...get().rounds, round]
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
+
+  updateRound: (round) => {
+    const rounds = get().rounds.map(r => (r.id === round.id ? round : r))
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
 }))
