@@ -13,7 +13,7 @@ export default function Home() {
   const activeRoundId = useAppStore(s => s.activeRoundId)
 
   const activeRound = rounds.find(r => r.id === activeRoundId)
-  const pastRounds = rounds.filter(r => r.completedAt).slice(0, 5)
+  const pastRounds = rounds.filter(r => r.completedAt)
 
   return (
     <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
@@ -80,7 +80,7 @@ export default function Home() {
               const playedPar = played.reduce((s, h) => s + h.par, 0)
               const diff = totalStrokes - playedPar
               const date = new Date(round.startedAt).toLocaleDateString(undefined, {
-                month: 'short', day: 'numeric',
+                month: 'short', day: 'numeric', year: 'numeric',
               })
               return (
                 <li key={round.id}>
@@ -89,7 +89,7 @@ export default function Home() {
                     className="flex items-center justify-between bg-white border border-cream-dark rounded-xl px-4 py-3 shadow-sm touch-target"
                   >
                     <div>
-                      <div className="font-semibold text-gray-900">{round.courseName}</div>
+                      <div className="font-semibold text-gray-900">{round.courseName || 'Unnamed Course'}</div>
                       <div className="text-warm-gray text-sm">{date} · {round.tees}</div>
                     </div>
                     <div className="text-right">
