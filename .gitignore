@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env.local
+.env.*.local
+# Supabase secrets — never commit service role key
+supabase/.env
