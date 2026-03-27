@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { XCircle } from 'lucide-react'
 import { useAppStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
@@ -303,10 +304,12 @@ export default function Round() {
               )}
             </div>
             <button
+              type="button"
               onClick={() => setShowAbandonModal(true)}
-              className="text-sm text-red-500 underline touch-target self-center py-1"
+              className="flex items-center gap-1.5 text-xs text-[#a89880] min-h-[44px] self-center px-2 hover:underline active:opacity-70 active:scale-95 transition-all"
             >
-              Abandon Round
+              <XCircle size={14} />
+              Abandon round
             </button>
           </div>
         </div>
@@ -364,10 +367,12 @@ export default function Round() {
               Finish Round
             </button>
             <button
+              type="button"
               onClick={() => setShowAbandonModal(true)}
-              className="text-sm text-red-500 underline touch-target self-center py-1"
+              className="flex items-center gap-1.5 text-xs text-[#a89880] min-h-[44px] self-center px-2 hover:underline active:opacity-70 active:scale-95 transition-all"
             >
-              Abandon Round
+              <XCircle size={14} />
+              Abandon round
             </button>
           </div>
         </div>
