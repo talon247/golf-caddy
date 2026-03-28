@@ -94,7 +94,7 @@ function PlayerRow({ player, isHost }: { player: GroupRoundPlayer; isHost?: bool
   return (
     <div className="flex items-center gap-3 bg-white border border-cream-dark rounded-xl px-4 py-3">
       <div className="w-8 h-8 rounded-full bg-forest text-cream flex items-center justify-center text-sm font-bold shrink-0">
-        {player.playerName.charAt(0).toUpperCase()}
+        {(player.playerName ?? '').charAt(0).toUpperCase()}
       </div>
       <span className="font-medium text-gray-900">{player.playerName}</span>
       {isHost && (
@@ -250,7 +250,7 @@ export default function GroupRoundHost() {
   }
 
   const joinUrl = buildJoinUrl(groupRound.roomCode)
-  const players = groupRound.players
+  const players = groupRound.players ?? []
   const canStart = players.length >= 1
 
   return (
