@@ -75,7 +75,7 @@ export default function GroupRoundJoin() {
     try {
       const { data, error: rpcError } = await rpc('join_group_round', {
         p_room_code: roomCode,
-        p_display_name: displayName.trim(),
+        p_player_name: displayName.trim(),
       })
       if (rpcError) throw rpcError
 
