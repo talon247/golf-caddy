@@ -4,9 +4,29 @@ import { useAppStore } from '../store'
 import { fetchRounds, syncRoundToSupabase } from '../lib/sync'
 import { addToQueue } from '../lib/syncQueue'
 import { SyncIndicator } from '../components/SyncIndicator'
+import ConfirmModal from '../components/ConfirmModal'
+import SwipeToDelete from '../components/SwipeToDelete'
 import type { Round } from '../types'
 
 type HoleFilter = 'all' | '18' | '9'
+
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={className ?? 'w-4 h-4'}
+      aria-label="Locked round"
+    >
+      <path
+        fillRule="evenodd"
+        d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
 
 function formatDate(ts: number): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -50,6 +70,10 @@ export default function History() {
   const [filter, setFilter] = useState<HoleFilter>('all')
   const [cloudOffset, setCloudOffset] = useState(0)
   const [hasMoreCloud, setHasMoreCloud] = useState(false)
+  const [lockedModalOpen, setLockedModalOpen] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [showBatchClear, setShowBatchClear] = useState(false)
+  const deleteRound = useAppStore(s => s.deleteRound)
 
   useEffect(() => {
     let cancelled = false
@@ -154,6 +178,37 @@ export default function History() {
     }
   }
 
+  function handleDeleteRequest(round: Round) {
+    if (round.isLocked) {
+      setLockedModalOpen(true)
+      return
+    }
+    setDeleteTargetId(round.id)
+  }
+
+  function confirmDelete() {
+    if (deleteTargetId) {
+      deleteRound(deleteTargetId)
+      setMergedRounds(prev => prev.filter(r => r.id !== deleteTargetId))
+      setDeleteTargetId(null)
+    }
+  }
+
+  // Identify local-only rounds (not synced to cloud)
+  const localOnlyRounds = mergedRounds.filter(r => {
+    const status = syncStatus[r.id]
+    return !status || status === 'local'
+  })
+
+  function handleBatchClearConfirm() {
+    const localRoundIds = localOnlyRounds.map(r => r.id)
+    setMergedRounds(prev => prev.filter(r => !localRoundIds.includes(r.id)))
+    for (const id of localRoundIds) {
+      deleteRound(id)
+    }
+    setShowBatchClear(false)
+  }
+
   const filterBtnClass = (active: boolean) =>
     `px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
       active
@@ -193,6 +248,18 @@ export default function History() {
         </div>
       )}
 
+      {/* Batch clear button for local-only rounds */}
+      {localOnlyRounds.length > 0 && !loading && (
+        <div className="px-5 mb-3">
+          <button
+            onClick={() => setShowBatchClear(true)}
+            className="w-full py-2.5 text-red-600 font-semibold text-sm border border-red-200 rounded-2xl bg-red-50 active:scale-[0.98] transition-transform"
+          >
+            Clear Local Rounds ({localOnlyRounds.length})
+          </button>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-20 gap-2">
         {loading ? (
@@ -226,19 +293,28 @@ export default function History() {
               const { label: vsParLabel, className: vsParClass } = formatVsPar(vsParResult)
               const status = syncStatus[round.id] ?? 'local'
               const teeLabel = round.teeSet ?? round.tees
+              const locked = round.isLocked === true
 
-              return (
+              const card = (
                 <button
-                  key={round.id}
                   onClick={() => handleRowTap(round)}
-                  className="w-full text-left bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-[#e5e1d8] active:scale-[0.98] transition-transform"
+                  className={`w-full text-left rounded-2xl px-4 py-3.5 shadow-sm border active:scale-[0.98] transition-transform ${
+                    locked
+                      ? 'bg-[#f5f0e8] border-[#d5d0c8] opacity-90'
+                      : 'bg-white border-[#e5e1d8]'
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    {/* Left: date + course */}
+                    {/* Left: date + course + lock */}
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-semibold text-[#6b6b6b] mb-0.5">
-                        {formatDate(round.completedAt ?? round.startedAt)}
-                      </span>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-xs font-semibold text-[#6b6b6b]">
+                          {formatDate(round.completedAt ?? round.startedAt)}
+                        </span>
+                        {locked && (
+                          <LockIcon className="w-3.5 h-3.5 text-[#6b6b6b]" />
+                        )}
+                      </div>
                       <span className="text-[#1a1a1a] font-bold text-sm truncate">
                         {round.courseName}
                       </span>
@@ -258,6 +334,16 @@ export default function History() {
                   </div>
                 </button>
               )
+
+              if (locked) {
+                return <div key={round.id}>{card}</div>
+              }
+
+              return (
+                <SwipeToDelete key={round.id} onDelete={() => handleDeleteRequest(round)}>
+                  {card}
+                </SwipeToDelete>
+              )
             })}
 
             {hasMoreCloud && (
@@ -272,6 +358,53 @@ export default function History() {
           </>
         )}
       </div>
+
+      {/* Locked round info modal */}
+      {lockedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <LockIcon className="w-5 h-5 text-[#2d5a27]" />
+              <h2 className="text-lg font-bold text-[#1a1a1a]">Round Locked</h2>
+            </div>
+            <p className="text-[#6b6b6b] text-sm leading-relaxed">
+              This round is part of a group match and cannot be deleted. Contact the match organizer to dispute results.
+            </p>
+            <button
+              onClick={() => setLockedModalOpen(false)}
+              className="w-full bg-[#2d5a27] text-white rounded-xl py-3 font-bold text-base min-h-[48px] active:scale-95 transition-transform"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTargetId && (
+        <ConfirmModal
+          title="Delete Round"
+          message="Delete this round? This cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          destructive
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTargetId(null)}
+        />
+      )}
+
+      {/* Batch clear confirmation modal */}
+      {showBatchClear && (
+        <ConfirmModal
+          title="Clear Local Rounds"
+          message={`Delete ${localOnlyRounds.length} local-only round${localOnlyRounds.length === 1 ? '' : 's'}? This cannot be undone.`}
+          confirmLabel="Clear All"
+          cancelLabel="Cancel"
+          destructive
+          onConfirm={handleBatchClearConfirm}
+          onCancel={() => setShowBatchClear(false)}
+        />
+      )}
     </main>
   )
 }

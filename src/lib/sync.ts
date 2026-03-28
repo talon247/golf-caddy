@@ -216,6 +216,23 @@ export async function abandonRoundInSupabase(roundId: string): Promise<void> {
   }
 }
 
+// ── Delete round ──────────────────────────────────────────────────────────
+
+/**
+ * Soft-delete a round in Supabase by setting deleted_at = now().
+ * Fire-and-forget; does not block the UI.
+ */
+export async function deleteRoundInSupabase(roundId: string): Promise<void> {
+  try {
+    await supabase
+      .from('rounds')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', roundId)
+  } catch {
+    // intentionally swallowed — local state is already updated
+  }
+}
+
 // ── Active round ──────────────────────────────────────────────────────────
 
 /**

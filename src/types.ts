@@ -46,6 +46,7 @@ export interface Round {
   completedAt?: number
   holes: Hole[]
   scoreDifferential?: number | null
+  isLocked?: boolean
 }
 
 export interface AppState {

@@ -7,7 +7,7 @@ import { loadState, saveState, addAbandonedRoundId, type PersistedState } from '
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
-import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase } from '../lib/sync'
+import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase } from '../lib/sync'
 import { addToQueue, getQueue, processSyncQueue } from '../lib/syncQueue'
 import { useToastStore } from './toastStore'
 
@@ -414,10 +414,23 @@ export const useAppStore = create<StoreState>((set, get) => ({
   },
 
   deleteRound: (roundId) => {
-    const rounds = get().rounds.filter(r => r.id !== roundId)
-    const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
-    set({ rounds, activeRoundId })
-    persist({ ...get(), rounds, activeRoundId })
+    const state = get()
+    const wasSynced = state.syncStatus[roundId] === 'synced'
+
+    // Remove from sync tracking (covers pending, error, local, synced)
+    const syncStatus = { ...state.syncStatus }
+    delete syncStatus[roundId]
+    const syncQueue = state.syncQueue.filter(i => i.roundId !== roundId)
+
+    const rounds = state.rounds.filter(r => r.id !== roundId)
+    const activeRoundId = state.activeRoundId === roundId ? undefined : state.activeRoundId
+    set({ rounds, activeRoundId, syncStatus, syncQueue })
+    persist({ ...get(), rounds, activeRoundId, syncStatus })
+
+    // Fire-and-forget soft-delete in Supabase for synced rounds
+    if (wasSynced && state.isAuthenticated) {
+      void deleteRoundInSupabase(roundId)
+    }
   },
 
   abandonRound: (roundId) => {
