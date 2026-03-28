@@ -217,7 +217,9 @@ export default function GroupRoundHost() {
       // Non-fatal — continue
     }
 
-    navigate('/round')
+    // Group round play screen coming soon (THEA-81)
+    // For now show a waiting state - the full play screen is being built
+    setStatus('active')
   }
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -226,6 +228,22 @@ export default function GroupRoundHost() {
       <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
         <div className="text-4xl animate-pulse">⛳</div>
         <p className="text-warm-gray text-lg font-medium">Creating room…</p>
+      </main>
+    )
+  }
+
+  if (status === 'active') {
+    return (
+      <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
+        <div className="text-5xl">🏌️</div>
+        <h2 className="text-2xl font-black text-forest">Round Started!</h2>
+        <p className="text-warm-gray text-center">Group round scoring is coming soon. For now, each player can log their score independently using the solo round mode.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target"
+        >
+          Go to Home
+        </button>
       </main>
     )
   }
@@ -333,3 +351,4 @@ export default function GroupRoundHost() {
     </main>
   )
 }
+
