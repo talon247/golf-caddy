@@ -29,8 +29,7 @@ export default function GroupRoundCompletionWatcher() {
     // Only watch when there's an active group round in play
     if (!groupRound || status !== 'active') return
 
-    const channelName = `group-round-${groupRound.roomCode}`
-    const channel = supabase.channel(`completion-watcher-${groupRound.roomCode}`)
+    const channel = supabase.channel(`group_round:${groupRound.id}`)
 
     channel
       .on(
@@ -71,7 +70,6 @@ export default function GroupRoundCompletionWatcher() {
       cancelled = true
       if (pollInterval) clearInterval(pollInterval)
       supabase.removeChannel(channel)
-      void channelName // suppress unused warning
     }
   }, [groupRound, status, navigate, setFinalStandings])
 
