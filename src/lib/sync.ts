@@ -260,6 +260,7 @@ export async function fetchProfile(userId: string): Promise<UserProfile | null> 
     return {
       id: data.id,
       displayName: data.display_name,
+      username: (data as Record<string, unknown>).username as string | undefined ?? undefined,
       homeCourse: data.home_course ?? undefined,
       handicapIndex: data.handicap_index ?? null,
     }
