@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = supabase.rpc.bind(supabase) as (...args: any[]) => any
-import { useGroupRoundStore } from '../store'
-import type { GroupRound, GroupRoundPlayer, JoinError } from '../types'
+import { useGroupRoundStore, useAppStore } from '../store'
+import type { GroupRound, GroupRoundPlayer, GroupRoundStatus, JoinError } from '../types'
 import CodeEntry from '../components/group-round/CodeEntry'
 import DisplayNameEntry from '../components/group-round/DisplayNameEntry'
 import JoinLobby from '../components/group-round/JoinLobby'
@@ -19,6 +19,10 @@ interface JoinRpcResult {
   groupRoundId?: string
   playerId?: string
   roomCode?: string
+  status?: string
+  courseName?: string | null
+  holeCount?: number | null
+  pars?: number[] | null
 }
 
 function mapJoinError(raw: string): JoinError {
@@ -30,6 +34,7 @@ function mapJoinError(raw: string): JoinError {
 
 export default function GroupRoundJoin() {
   const { code: urlCode } = useParams<{ code?: string }>()
+  const navigate = useNavigate()
   const [step, setStep] = useState<Step>('code')
   const [code, setCode] = useState<string[]>(
     urlCode ? urlCode.toUpperCase().slice(0, 4).split('').concat(['', '', '', '']).slice(0, 4) : ['', '', '', '']
@@ -40,6 +45,8 @@ export default function GroupRoundJoin() {
 
   const setGroupRound = useGroupRoundStore(s => s.setGroupRound)
   const setCurrentPlayer = useGroupRoundStore(s => s.setCurrentPlayer)
+  const addRound = useAppStore(s => s.addRound)
+  const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
 
   async function handleCodeSubmit() {
     const roomCode = code.join('').toUpperCase()
@@ -56,7 +63,7 @@ export default function GroupRoundJoin() {
       const result = data as { error?: string; status?: string; expiresAt?: string }
       if (result.error === 'not_found') {
         setError('Code not found. Check the code and try again.')
-      } else if (result.status === 'active' || result.status === 'completed' || (result.expiresAt && new Date(result.expiresAt) < new Date())) {
+      } else if (result.status === 'completed' || (result.expiresAt && new Date(result.expiresAt) < new Date())) {
         setError('This round has already ended.')
       } else {
         setStep('name')
@@ -90,11 +97,11 @@ export default function GroupRoundJoin() {
 
       const groupRound: GroupRound = {
         id: result.groupRoundId!,
-        roomCode: result.roomCode!,
+        roomCode: result.roomCode ?? code.join('').toUpperCase(),
         hostUserId: null,
-        status: 'waiting',
+        status: (result.status ?? 'waiting') as GroupRoundStatus,
         expiresAt: '',
-        createdAt: '',
+        createdAt: new Date().toISOString(),
       }
       const player: GroupRoundPlayer = {
         id: result.playerId!,
@@ -106,6 +113,29 @@ export default function GroupRoundJoin() {
       }
       setGroupRound(groupRound)
       setCurrentPlayer(player)
+
+      // Catch-up: round already active — create local round and go directly to /round
+      if (result.status === 'active' && result.holeCount && result.pars) {
+        const roundId = crypto.randomUUID()
+        const holeCount = result.holeCount as 9 | 18
+        addRound({
+          id: roundId,
+          courseName: result.courseName ?? 'Group Round',
+          playerName: displayName.trim() || 'Player',
+          tees: '',
+          holeCount,
+          startedAt: Date.now(),
+          holes: Array.from({ length: holeCount }, (_, i) => ({
+            number: i + 1,
+            par: result.pars![i] ?? 4,
+            shots: [],
+          })),
+        })
+        setActiveRoundId(roundId)
+        navigate('/round')
+        return
+      }
+
       setStep('lobby')
     } catch {
       setError('Network error. Please try again.')

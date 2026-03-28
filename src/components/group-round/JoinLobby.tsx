@@ -4,20 +4,23 @@ import { supabase } from '../../lib/supabase'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = supabase.rpc.bind(supabase) as (...args: any[]) => any
-import { useGroupRoundStore } from '../../store'
+import { useGroupRoundStore, useAppStore } from '../../store'
 import type { GroupRoundPlayer, GroupRound } from '../../types'
 
 interface LobbyPlayer {
   id: string
-  displayName: string
+  playerName: string
   joinedAt: string
 }
 
 interface LobbyResult {
   id: string
   roomCode: string
+  hostName: string
   status: string
-  expiresAt: string
+  courseName: string | null
+  holeCount: number | null
+  pars: number[] | null
   players: LobbyPlayer[]
 }
 
@@ -27,6 +30,8 @@ export default function JoinLobby() {
   const currentPlayer = useGroupRoundStore(s => s.currentPlayer)
   const setPlayers = useGroupRoundStore(s => s.setPlayers)
   const setGroupRound = useGroupRoundStore(s => s.setGroupRound)
+  const addRound = useAppStore(s => s.addRound)
+  const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -45,32 +50,47 @@ export default function JoinLobby() {
         id: p.id,
         groupRoundId: result.id,
         userId: null,
-        displayName: p.displayName,
+        displayName: p.playerName,
         roundId: null,
         joinedAt: p.joinedAt,
       }))
       setPlayers(mapped)
 
-      // When host starts the round, navigate to the active round
-      if (result.status === 'active') {
+      // When host starts the round, create local round from host config and navigate
+      if (result.status === 'active' && result.holeCount && result.pars) {
+        const roundId = crypto.randomUUID()
+        const holeCount = result.holeCount as 9 | 18
+        addRound({
+          id: roundId,
+          courseName: result.courseName ?? 'Group Round',
+          playerName: currentPlayer?.displayName ?? currentPlayer?.playerName ?? 'Player',
+          tees: '',
+          holeCount,
+          startedAt: Date.now(),
+          holes: Array.from({ length: holeCount }, (_, i) => ({
+            number: i + 1,
+            par: result.pars![i] ?? 4,
+            shots: [],
+          })),
+        })
+        setActiveRoundId(roundId)
+
         const updated: GroupRound = {
           ...groupRound!,
+          id: result.id,
           status: 'active',
         }
         setGroupRound(updated)
-        // Store group round ID in localStorage for Setup to pick up
-        if (result.id) {
-          localStorage.setItem('golf-caddy-group-round-id', result.id)
-        }
+
         clearInterval(intervalRef.current!)
-        navigate('/setup', { replace: true })
+        navigate('/round', { replace: true })
       }
     }
 
     poll()
     intervalRef.current = setInterval(poll, 2500)
     return () => { clearInterval(intervalRef.current!) }
-  }, [groupRound, navigate, setPlayers, setGroupRound])
+  }, [groupRound, navigate, setPlayers, setGroupRound, addRound, setActiveRoundId, currentPlayer])
 
   const players = useGroupRoundStore(s => s.players)
 
