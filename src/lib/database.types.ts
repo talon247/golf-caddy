@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
@@ -119,6 +119,7 @@ export interface Database {
           slope_rating: number | null
           adjusted_gross_score: number | null
           score_differential: number | null
+          is_locked: boolean
           started_at: string
           completed_at: string | null
           deleted_at: string | null
@@ -139,6 +140,7 @@ export interface Database {
           slope_rating?: number | null
           adjusted_gross_score?: number | null
           score_differential?: number | null
+          is_locked?: boolean
           started_at?: string
           completed_at?: string | null
           deleted_at?: string | null
@@ -157,6 +159,7 @@ export interface Database {
           slope_rating?: number | null
           adjusted_gross_score?: number | null
           score_differential?: number | null
+          is_locked?: boolean
           completed_at?: string | null
           deleted_at?: string | null
           updated_at?: string
@@ -432,6 +435,12 @@ export interface Database {
       }
       get_friends_in_rounds: {
         Args: Record<string, never>
+        Returns: Json
+      }
+      lock_rounds_for_group_round: {
+        Args: {
+          p_group_round_id: string
+        }
         Returns: Json
       }
       detect_orphaned_rounds: {

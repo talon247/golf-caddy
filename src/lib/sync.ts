@@ -220,16 +220,34 @@ export async function abandonRoundInSupabase(roundId: string): Promise<void> {
 
 /**
  * Soft-delete a round in Supabase by setting deleted_at = now().
- * Fire-and-forget; does not block the UI.
+ * Returns { success: false, locked: true } if the round is locked (non-deletable).
  */
-export async function deleteRoundInSupabase(roundId: string): Promise<void> {
+export async function deleteRoundInSupabase(
+  roundId: string,
+): Promise<{ success: boolean; locked?: boolean }> {
   try {
-    await supabase
+    // Check lock before deleting — locked rounds tied to side bets must not be removed
+    const { data: row, error: fetchErr } = await supabase
+      .from('rounds')
+      .select('is_locked')
+      .eq('id', roundId)
+      .maybeSingle()
+
+    if (fetchErr) throw fetchErr
+
+    if (row?.is_locked) {
+      return { success: false, locked: true }
+    }
+
+    const { error } = await supabase
       .from('rounds')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', roundId)
+
+    if (error) throw error
+    return { success: true }
   } catch {
-    // intentionally swallowed — local state is already updated
+    return { success: false }
   }
 }
 
@@ -361,6 +379,7 @@ export async function fetchRounds(
           : undefined,
         holes,
         scoreDifferential: row.score_differential ?? null,
+        isLocked: (row as Record<string, unknown>).is_locked === true,
       } satisfies Round)
     }
 
