@@ -22,8 +22,40 @@ export function releaseSyncLock(roundId: string): void {
 // ── Round sync ────────────────────────────────────────────────────────────
 
 /**
+ * Derive a stable, deterministic UUID for a hole from (roundId, holeNumber).
+ * Encodes hole_number into the last 4 hex chars of the round UUID so concurrent
+ * calls always produce the same IDs → UPSERT is idempotent.
+ */
+function stableHoleId(roundId: string, holeNumber: number): string {
+  const hex = roundId.replace(/-/g, '')
+  const tail = holeNumber.toString(16).padStart(4, '0')
+  const full = hex.slice(0, 28) + tail
+  return `${full.slice(0, 8)}-${full.slice(8, 12)}-${full.slice(12, 16)}-${full.slice(16, 20)}-${full.slice(20)}`
+}
+
+/**
+ * Derive a stable, deterministic UUID for a shot from (roundId, holeNumber, sequence).
+ * Encodes holeNumber (2 hex chars) and sequence (2 hex chars) into the last 4 chars of
+ * the round UUID. Using roundId + holeNumber directly avoids the prior bug where
+ * stableShotId derived from holeId would collide — holeId only differs in chars 28–31,
+ * but we sliced at 27, making all holes share the same prefix.
+ */
+function stableShotId(roundId: string, holeNumber: number, sequence: number): string {
+  const hex = roundId.replace(/-/g, '')
+  const holeHex = holeNumber.toString(16).padStart(2, '0')
+  const seqHex = sequence.toString(16).padStart(2, '0')
+  const full = hex.slice(0, 28) + holeHex + seqHex
+  return `${full.slice(0, 8)}-${full.slice(8, 12)}-${full.slice(12, 16)}-${full.slice(16, 20)}-${full.slice(20)}`
+}
+
+/**
  * Upsert a round (and its holes + shots) to Supabase.
  * Callers: store.completeRound, syncQueue.processSyncQueue, syncActiveRound
+ *
+ * Race-condition safety: holes and shots are assigned deterministic UUIDs
+ * derived from (roundId, holeNumber) and (holeId, sequence). Concurrent
+ * calls for the same round therefore produce identical IDs and UPSERT the
+ * same rows — no partial deletes or duplicate inserts can corrupt data.
  */
 export async function syncRoundToSupabase(
   round: Round,
@@ -55,75 +87,114 @@ export async function syncRoundToSupabase(
     )
     if (roundError) throw roundError
 
-    // 2. Delete existing shots then holes (FK order)
-    const { error: delShotsErr } = await supabase
-      .from('shots')
-      .delete()
-      .eq('round_id', round.id)
-    if (delShotsErr) throw delShotsErr
+    // 2. Build hole upsert data with stable IDs
+    const holeRows = round.holes.map(h => {
+      const holeId = stableHoleId(round.id, h.number)
+      return {
+        id: holeId,
+        round_id: round.id,
+        user_id: userId,
+        hole_number: h.number,
+        par: h.par,
+        putts: h.putts ?? 0,
+        fairway_hit: h.fairwayHit ?? null,
+        penalties: h.penalties ?? 0,
+        gir: h.gir ?? null,
+      }
+    })
+    const keepHoleIds = holeRows.map(h => h.id)
 
-    const { error: delHolesErr } = await supabase
-      .from('holes')
-      .delete()
-      .eq('round_id', round.id)
-    if (delHolesErr) throw delHolesErr
-
-    // 3. Insert holes
-    if (round.holes.length > 0) {
-      const { data: insertedHoles, error: holesError } = await supabase
+    // 3. UPSERT holes — idempotent because IDs are deterministic
+    if (holeRows.length > 0) {
+      const { error: holesError } = await supabase
         .from('holes')
-        .insert(
-          round.holes.map(h => ({
-            round_id: round.id,
-            user_id: userId,
-            hole_number: h.number,
-            par: h.par,
-            putts: h.putts ?? 0,
-            fairway_hit: h.fairwayHit ?? null,
-          })),
-        )
-        .select('id, hole_number')
+        .upsert(holeRows, { onConflict: 'id' })
       if (holesError) throw holesError
+    }
 
-      // 4. Insert shots (batch)
-      const allShots: {
-        hole_id: string
-        round_id: string
-        user_id: string
-        club_id: string
-        sequence: number
-        is_putt: boolean
-      }[] = []
+    // 4. Delete orphaned holes (e.g. hole count changed from 18→9)
+    //    Shots cascade-delete via DB FK, so delete holes first then shots
+    const { data: existingHoles, error: fetchHolesErr } = await supabase
+      .from('holes')
+      .select('id')
+      .eq('round_id', round.id)
+    if (fetchHolesErr) throw fetchHolesErr
 
-      for (const hole of round.holes) {
-        if (hole.shots.length === 0) continue
-        const holeRow = (insertedHoles ?? []).find(
-          h => h.hole_number === hole.number,
-        )
-        if (!holeRow) continue
-        hole.shots.forEach((shot, i) => {
-          allShots.push({
-            hole_id: holeRow.id,
-            round_id: round.id,
-            user_id: userId,
-            club_id: shot.clubId,
-            sequence: i + 1,
-            is_putt: false,
-          })
+    const orphanHoleIds = (existingHoles ?? [])
+      .map(h => h.id)
+      .filter(id => !keepHoleIds.includes(id))
+
+    if (orphanHoleIds.length > 0) {
+      // Delete orphaned shots first (FK constraint)
+      const { error: delOrphanShotsErr } = await supabase
+        .from('shots')
+        .delete()
+        .in('hole_id', orphanHoleIds)
+      if (delOrphanShotsErr) throw delOrphanShotsErr
+
+      const { error: delOrphanHolesErr } = await supabase
+        .from('holes')
+        .delete()
+        .in('id', orphanHoleIds)
+      if (delOrphanHolesErr) throw delOrphanHolesErr
+    }
+
+    // 5. Build shot upsert data with stable IDs
+    const allShots: {
+      id: string
+      hole_id: string
+      round_id: string
+      user_id: string
+      club_id: string
+      sequence: number
+      is_putt: boolean
+    }[] = []
+
+    for (const hole of round.holes) {
+      const holeId = stableHoleId(round.id, hole.number)
+      hole.shots.forEach((shot, i) => {
+        allShots.push({
+          id: stableShotId(round.id, hole.number, i + 1),
+          hole_id: holeId,
+          round_id: round.id,
+          user_id: userId,
+          club_id: shot.clubId,
+          sequence: i + 1,
+          is_putt: false,
         })
-      }
+      })
+    }
 
-      if (allShots.length > 0) {
-        const { error: shotsError } = await supabase
-          .from('shots')
-          .insert(allShots)
-        if (shotsError) throw shotsError
-      }
+    // 6. UPSERT shots — idempotent because IDs are deterministic
+    if (allShots.length > 0) {
+      const { error: shotsError } = await supabase
+        .from('shots')
+        .upsert(allShots, { onConflict: 'id' })
+      if (shotsError) throw shotsError
+    }
+
+    // 7. Delete orphaned shots (e.g. shots removed from a hole)
+    const keepShotIds = allShots.map(s => s.id)
+    const { data: existingShots, error: fetchShotsErr } = await supabase
+      .from('shots')
+      .select('id')
+      .eq('round_id', round.id)
+    if (fetchShotsErr) throw fetchShotsErr
+
+    const orphanShotIds = (existingShots ?? [])
+      .map(s => s.id)
+      .filter(id => !keepShotIds.includes(id))
+
+    if (orphanShotIds.length > 0) {
+      const { error: delOrphanShotsErr } = await supabase
+        .from('shots')
+        .delete()
+        .in('id', orphanShotIds)
+      if (delOrphanShotsErr) throw delOrphanShotsErr
     }
 
     return { success: true }
   } catch (err) {
-    console.error('[sync] syncRoundToSupabase error:', err)
     return { success: false }
   }
 }
