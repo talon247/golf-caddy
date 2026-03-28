@@ -190,19 +190,19 @@ export default function Friends() {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-[#e5e1d8] mx-4">
-        <button className={tabClass('friends')} onClick={() => setActiveTab('friends')}>
+      <div className="flex border-b border-[#e5e1d8] mx-4" role="tablist">
+        <button className={tabClass('friends')} onClick={() => setActiveTab('friends')} role="tab" aria-selected={activeTab === 'friends'}>
           Friends {friends.length > 0 && `(${friends.length})`}
         </button>
-        <button className={tabClass('requests')} onClick={() => setActiveTab('requests')}>
+        <button className={tabClass('requests')} onClick={() => setActiveTab('requests')} role="tab" aria-selected={activeTab === 'requests'}>
           Requests {pendingRequests.length > 0 && (
             <span className="ml-1 bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">
               {pendingRequests.length}
             </span>
           )}
         </button>
-        <button className={tabClass('search')} onClick={() => setActiveTab('search')}>
-          Add
+        <button className={tabClass('search')} onClick={() => setActiveTab('search')} role="tab" aria-selected={activeTab === 'search'}>
+          Search
         </button>
       </div>
 
