@@ -57,9 +57,11 @@ export default function JoinLobby() {
       setPlayers(mapped)
 
       // When host starts the round, create local round from host config and navigate
-      if (result.status === 'active' && result.holeCount && result.pars) {
+      if (result.status === 'active') {
         const roundId = crypto.randomUUID()
-        const holeCount = result.holeCount as 9 | 18
+        // Fall back to 18-hole round with par 4s if course config not yet synced
+        const holeCount = (result.holeCount === 9 ? 9 : 18) as 9 | 18
+        const pars = result.pars ?? Array(holeCount).fill(4)
         addRound({
           id: roundId,
           courseName: result.courseName ?? 'Group Round',
@@ -69,7 +71,7 @@ export default function JoinLobby() {
           startedAt: Date.now(),
           holes: Array.from({ length: holeCount }, (_, i) => ({
             number: i + 1,
-            par: result.pars![i] ?? 4,
+            par: pars[i] ?? 4,
             shots: [],
           })),
         })
