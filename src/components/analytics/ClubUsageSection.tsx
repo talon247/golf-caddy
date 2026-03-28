@@ -10,16 +10,17 @@ import {
   Cell,
 } from "recharts"
 import { calcClubUsage } from "../../lib/analytics"
-import type { Round } from "../../types"
+import type { Round, Club } from "../../types"
 import type { TimeRange } from "../../lib/analytics"
 
 interface Props {
   rounds: Round[]
   timeRange: TimeRange
+  clubs: Club[]
 }
 
-export function ClubUsageSection({ rounds }: Props) {
-  const usage = useMemo(() => calcClubUsage(rounds), [rounds])
+export function ClubUsageSection({ rounds, clubs }: Props) {
+  const usage = useMemo(() => calcClubUsage(rounds, clubs), [rounds, clubs])
 
   // Separate putter from main chart
   const putterUsage = usage.find(u =>

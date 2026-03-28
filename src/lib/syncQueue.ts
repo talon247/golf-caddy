@@ -1,5 +1,6 @@
 // THEA-136: Offline sync queue — localStorage-backed, online-event-driven
 // THEA-160: Exponential backoff + jitter for retry logic
+// THEA-159: QuotaExceededError handling + cleanup of old synced rounds
 import type { SyncQueueItem } from '../types'
 import { syncRoundToSupabase } from './sync'
 import { useAppStore } from '../store'

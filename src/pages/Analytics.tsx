@@ -20,6 +20,7 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState<TimeRange>("last10")
   const { rounds, loading } = useRounds()
   const profile = useAppStore(s => s.profile)
+  const clubBag = useAppStore(s => s.clubBag)
 
   const completedRounds = rounds.filter(r => r.completedAt != null)
   const filteredRounds = filterByTimeRange(completedRounds, timeRange)
@@ -83,7 +84,7 @@ export default function Analytics() {
           <HandicapSection rounds={filteredRounds} profile={profile} timeRange={timeRange} />
           <ScoringSection rounds={filteredRounds} timeRange={timeRange} />
           <AccuracySection rounds={filteredRounds} timeRange={timeRange} />
-          <ClubUsageSection rounds={filteredRounds} timeRange={timeRange} />
+          <ClubUsageSection rounds={filteredRounds} timeRange={timeRange} clubs={clubBag} />
         </div>
       )}
     </main>
