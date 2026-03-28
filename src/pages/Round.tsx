@@ -275,7 +275,7 @@ export default function Round() {
                 key={p}
                 onClick={() => handlePar(p)}
                 disabled={parLocked}
-                className={`w-10 h-10 rounded-full text-sm font-bold border-2 transition-colors touch-target ${
+                className={`w-11 h-11 rounded-full text-sm font-bold border-2 transition-colors touch-target ${
                   hole.par === p
                     ? parLocked
                       ? 'bg-gray-400 text-white border-gray-400'
@@ -298,7 +298,7 @@ export default function Round() {
             <div className={`text-6xl font-black leading-none h-16 flex items-center justify-center ${strokes > 0 ? 'text-[#2d5a27]' : 'text-gray-500'}`}>
               {strokes}
             </div>
-            <div className={`text-lg font-semibold h-7 flex items-center justify-center text-center ${strokes > 0 ? scoreColor(strokes, hole.par) : 'text-gray-400'}`}>
+            <div className={`text-lg font-semibold h-7 flex items-center justify-center text-center ${strokes > 0 ? scoreColor(strokes, hole.par) : 'text-gray-500'}`}>
               {strokes > 0 ? scoreName(strokes, hole.par) : 'Tap a club to start'}
             </div>
 

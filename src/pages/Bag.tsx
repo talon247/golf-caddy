@@ -43,7 +43,7 @@ export default function Bag() {
         <h1 className="text-2xl font-bold text-forest">My Bag</h1>
         <button
           onClick={handleDone}
-          className="bg-forest text-cream font-semibold px-4 py-2 rounded-lg hover:bg-forest-mid transition-colors"
+          className="bg-forest text-cream font-semibold px-4 py-2 min-h-[44px] rounded-lg hover:bg-forest-mid transition-colors"
         >
           {saved ? '✓ Saved' : 'Done'}
         </button>
@@ -81,7 +81,7 @@ export default function Bag() {
 
             <div className="flex flex-col shrink-0">
               <button
-                className="text-warm-gray hover:text-forest disabled:opacity-25 text-xs leading-tight px-1"
+                className="text-warm-gray hover:text-forest disabled:opacity-25 text-xs leading-tight px-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 onClick={() => moveClubUp(club.id)}
                 disabled={idx === 0}
                 aria-label={`Move ${club.name} up`}
@@ -89,7 +89,7 @@ export default function Bag() {
                 ▲
               </button>
               <button
-                className="text-warm-gray hover:text-forest disabled:opacity-25 text-xs leading-tight px-1"
+                className="text-warm-gray hover:text-forest disabled:opacity-25 text-xs leading-tight px-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 onClick={() => moveClubDown(club.id)}
                 disabled={idx === sorted.length - 1}
                 aria-label={`Move ${club.name} down`}
