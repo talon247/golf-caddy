@@ -118,23 +118,26 @@ function PlayerRow({ player, isHost }: { player: GroupRoundPlayer; isHost?: bool
 
 export default function GroupRoundHost() {
   const navigate = useNavigate()
-  const { groupRound, status, error, setGroupRound, setStatus, setError, setPlayers, clearGroupRound } =
+  const { groupRound, status, error, setGroupRound, setStatus, setError, setPlayers } =
     useGroupRoundStore()
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const hostName = 'Host' // Placeholder until auth is implemented
 
-  // Clear any stale error state from previous session on mount
+  // ── Initialize: clear stale state then create a new group round ────────
+  // Single merged effect avoids the two-effect race condition where both
+  // effects capture the same stale closure snapshot on mount. By using
+  // getState() we read fresh store values instead of captured renders.
   useEffect(() => {
-    if (status === 'error' || status === 'active' || status === 'completed') {
-      clearGroupRound()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const store = useGroupRoundStore.getState()
 
-  // ── Create the group round ──────────────────────────────────────────────
-  useEffect(() => {
-    if (groupRound) return // Already created in this session
+    // Clear any stale error/active/completed state from a previous session
+    if (store.status === 'error' || store.status === 'active' || store.status === 'completed') {
+      store.clearGroupRound()
+    }
+
+    // Re-read after potential clear — skip creation if round already exists
+    if (useGroupRoundStore.getState().groupRound) return
 
     let cancelled = false
     setStatus('creating')
@@ -241,7 +244,7 @@ export default function GroupRoundHost() {
   }
 
   // ── Render ──────────────────────────────────────────────────────────────
-  if (status === 'creating') {
+  if (status === 'creating' || status === 'idle') {
     return (
       <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
         <div className="text-4xl animate-pulse">⛳</div>
