@@ -161,18 +161,6 @@ export default function Setup() {
       {/* Form */}
       <form id="setup-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
         <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-5 mx-4 mt-4 flex flex-col gap-5 mb-6">
-          {/* Course name */}
-          <div>
-            <label className="text-sm font-medium text-gray-500 mb-1 block">Course Name</label>
-            <input
-              type="text"
-              value={courseName}
-              onChange={e => { setCourseName(e.target.value); setSelectedCourseId(null) }}
-              placeholder="Augusta National"
-              className="border border-[#e5e1d8] rounded-xl px-4 py-3 text-base bg-white text-[#1a1a1a] focus:ring-2 focus:ring-[#2d5a27] focus:border-[#2d5a27] outline-none min-h-[48px] w-full"
-            />
-          </div>
-
           {/* Player name */}
           <div>
             <label className="text-sm font-medium text-gray-500 mb-1 block">Player Name</label>

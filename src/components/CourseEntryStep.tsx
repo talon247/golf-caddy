@@ -31,6 +31,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
   const [searching, setSearching] = useState(false)
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [searchError, setSearchError] = useState(false)
+  const [manualCourseName, setManualCourseName] = useState<string>(value.courseName ?? '')
   const [manualRating, setManualRating] = useState<string>(value.courseRating?.toString() ?? '')
   const [manualSlope, setManualSlope] = useState<string>(value.slopeRating?.toString() ?? '')
   const [manualTeeSet, setManualTeeSet] = useState<string>(value.teeSet ?? '')
@@ -118,6 +119,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
     const slope = parseInt(manualSlope, 10)
     onChange({
       teeSet: manualTeeSet.trim(),
+      courseName: manualCourseName.trim() || undefined,
       courseRating: isNaN(rating) ? null : rating,
       slopeRating: isNaN(slope) ? null : slope,
       skipped: false,
@@ -254,6 +256,20 @@ export default function CourseEntryStep({ value, onChange }: Props) {
 
       {mode === 'manual' && (
         <div className="flex flex-col gap-4">
+          <div>
+            <label htmlFor="manual-course-name" className="text-sm font-medium text-gray-500 mb-1 block">
+              Course Name
+            </label>
+            <input
+              id="manual-course-name"
+              type="text"
+              value={manualCourseName}
+              onChange={e => setManualCourseName(e.target.value)}
+              onBlur={commitManual}
+              placeholder="Augusta National"
+              className="border border-[#e5e1d8] rounded-xl px-4 py-3 text-base bg-white text-[#1a1a1a] focus:ring-2 focus:ring-[#2d5a27] focus:border-[#2d5a27] outline-none min-h-[48px] w-full"
+            />
+          </div>
           <div>
             <label htmlFor="manual-tee-set" className="text-sm font-medium text-gray-500 mb-1 block">
               Tee Set Name <span className="font-normal text-gray-400">(optional)</span>
