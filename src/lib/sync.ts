@@ -199,6 +199,23 @@ export async function syncRoundToSupabase(
   }
 }
 
+// ── Abandon round ─────────────────────────────────────────────────────────
+
+/**
+ * Mark a round as abandoned in Supabase so it won't reappear on refresh.
+ * Fire-and-forget; does not block the UI.
+ */
+export async function abandonRoundInSupabase(roundId: string): Promise<void> {
+  try {
+    await supabase
+      .from('rounds')
+      .update({ status: 'abandoned', completed_at: new Date().toISOString() })
+      .eq('id', roundId)
+  } catch {
+    // intentionally swallowed — local state is already updated
+  }
+}
+
 // ── Active round ──────────────────────────────────────────────────────────
 
 /**

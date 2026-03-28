@@ -7,7 +7,7 @@ import { loadState, saveState, type PersistedState } from '../storage'
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
-import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock } from '../lib/sync'
+import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase } from '../lib/sync'
 import { addToQueue, getQueue, processSyncQueue } from '../lib/syncQueue'
 import { useToastStore } from './toastStore'
 
@@ -427,5 +427,11 @@ export const useAppStore = create<StoreState>((set, get) => ({
     persist({ ...get(), rounds, activeRoundId })
     useGroupRoundStore.getState().clearGroupRound()
     useLeaderboardStore.getState().reset()
+
+    // Fire-and-forget: mark abandoned in Supabase so it won't reappear on refresh
+    const { isAuthenticated, userId } = get()
+    if (isAuthenticated && userId) {
+      void abandonRoundInSupabase(roundId)
+    }
   },
 }))

@@ -102,7 +102,10 @@ export default function Home() {
     let cancelled = false
     fetchActiveRound(userId).then(remoteRound => {
       if (cancelled || !remoteRound) return
-      const alreadyInStore = rounds.some(r => r.id === remoteRound.id)
+      // Read fresh store state (not stale closure) so a local abandon that raced
+      // with this fetch doesn't get overridden.
+      const currentRounds = useAppStore.getState().rounds
+      const alreadyInStore = currentRounds.some(r => r.id === remoteRound.id)
       if (!alreadyInStore) {
         addRound(remoteRound)
         setActiveRoundId(remoteRound.id)
