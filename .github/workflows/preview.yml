@@ -2,7 +2,7 @@ name: Preview Deploy
 
 on:
   push:
-    branches: [v2, v3]
+    branches: [v3]
 
 jobs:
   deploy:
