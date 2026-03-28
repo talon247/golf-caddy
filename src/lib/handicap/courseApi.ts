@@ -28,6 +28,7 @@ export interface TeeSet {
   number_of_holes: number
   total_yards?: number
   par_total?: number
+  holes?: { par: number }[]
 }
 
 export interface GolfApiCourseDetails {

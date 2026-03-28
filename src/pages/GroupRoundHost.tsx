@@ -6,6 +6,8 @@ import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useAppStore } from '../store'
 import ParGridEditor from '../components/ParGridEditor'
 import { saveGroupRoundRecovery } from '../storage'
+import { searchCourses, getCourseDetails } from '../lib/handicap/courseApi'
+import type { GolfApiCourse, TeeSet } from '../lib/handicap/courseApi'
 
 function generateRoomCode(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
@@ -23,7 +25,20 @@ export default function GroupRoundHost() {
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
   const [submitting, setSubmitting] = useState(false)
+
+  // Course search state
+  const [courseRating, setCourseRating] = useState<number | null>(null)
+  const [slopeRating, setSlopeRating] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<GolfApiCourse[]>([])
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
+  const [teeSets, setTeeSets] = useState<TeeSet[]>([])
+  const [searching, setSearching] = useState(false)
+  const [loadingDetails, setLoadingDetails] = useState(false)
+
   const createdRef = useRef(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
   const resetLeaderboard = useLeaderboardStore((s) => s.reset)
@@ -82,6 +97,69 @@ export default function GroupRoundHost() {
     })
   }, [])
 
+  // Debounced course search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults([])
+        return
+      }
+      abortRef.current?.abort()
+      abortRef.current = new AbortController()
+      setSearching(true)
+      try {
+        const courses = await searchCourses(searchQuery, abortRef.current.signal)
+        setSearchResults(courses)
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 500)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [searchQuery])
+
+  const handleSelectCourse = useCallback(async (course: GolfApiCourse) => {
+    setSelectedCourseId(course.id)
+    setSearchResults([])
+    setTeeSets([])
+    setLoadingDetails(true)
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+    try {
+      const details = await getCourseDetails(course.id, abortRef.current.signal)
+      const maleTees = details.tees?.male ?? []
+      const femaleTees = details.tees?.female ?? []
+      setTeeSets(maleTees.length > 0 ? maleTees : femaleTees)
+      // Pre-fill course name from API
+      setCourseName(`${course.club_name}${course.course_name ? ' – ' + course.course_name : ''}`)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      // On error, user can still type manually
+    } finally {
+      setLoadingDetails(false)
+    }
+  }, [])
+
+  const handleSelectTeeSet = useCallback((ts: TeeSet) => {
+    setCourseRating(ts.course_rating)
+    setSlopeRating(ts.slope_rating)
+    // Auto-fill holeCount and pars from tee set
+    const holes = ts.number_of_holes === 9 ? 9 : 18
+    setHoleCount(holes as 9 | 18)
+    if (ts.holes && ts.holes.length > 0) {
+      const newPars = Array(18).fill(4)
+      ts.holes.slice(0, holes).forEach((h, i) => {
+        newPars[i] = h.par
+      })
+      setPars(newPars)
+    }
+  }, [])
+
   const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
 
   const handleStartRound = useCallback(async () => {
@@ -90,10 +168,11 @@ export default function GroupRoundHost() {
       if (groupRoundId) {
         await supabase.rpc('start_group_round', {
           p_group_round_id: groupRoundId,
-          p_host_name: hostName.trim() || 'Host',
           p_course_name: courseName.trim() || 'Group Round',
           p_hole_count: holeCount,
           p_pars: pars.slice(0, holeCount),
+          p_course_rating: courseRating,
+          p_slope_rating: slopeRating,
         })
       }
 
@@ -110,6 +189,8 @@ export default function GroupRoundHost() {
           par: pars[i] ?? 4,
           shots: [],
         })),
+        courseRating: courseRating ?? undefined,
+        slopeRating: slopeRating ?? undefined,
       })
       setActiveRoundId(id)
 
@@ -128,7 +209,7 @@ export default function GroupRoundHost() {
     } finally {
       setSubmitting(false)
     }
-  }, [groupRoundId, courseName, holeCount, pars, addRound, setActiveRoundId, setGroupRound, roomCode, navigate])
+  }, [groupRoundId, courseName, holeCount, pars, courseRating, slopeRating, addRound, setActiveRoundId, setGroupRound, roomCode, navigate, hostName, resetLeaderboard])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -193,6 +274,94 @@ export default function GroupRoundHost() {
               placeholder="e.g. Brian"
               className="w-full py-3 px-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27]"
             />
+          </div>
+
+          {/* Course Search */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700" htmlFor="course-search">
+              Search Course <span className="font-normal text-gray-400">(optional)</span>
+            </label>
+            <div className="relative">
+              <input
+                id="course-search"
+                type="search"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setSelectedCourseId(null)
+                  setTeeSets([])
+                }}
+                placeholder="Search course name…"
+                className="w-full py-3 px-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27] pr-10"
+              />
+              {searching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <svg className="animate-spin h-4 w-4 text-[#2d5a27]" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            {searchResults.length > 0 && !selectedCourseId && (
+              <ul className="border border-[#e5e1d8] rounded-xl overflow-hidden divide-y divide-[#e5e1d8] bg-white" role="listbox" aria-label="Course search results">
+                {searchResults.map(c => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={false}
+                      onClick={() => handleSelectCourse(c)}
+                      className="w-full text-left px-4 py-3 hover:bg-[#f5f0e8] active:bg-[#eae6dd] transition-colors min-h-[48px]"
+                    >
+                      <div className="font-semibold text-[#1a1a1a] text-sm">{c.club_name}</div>
+                      <div className="text-xs text-gray-500">{c.course_name} · {c.location?.city}, {c.location?.state}</div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {loadingDetails && (
+              <p className="text-sm text-gray-500 px-1">Loading tee sets…</p>
+            )}
+
+            {teeSets.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <div className="text-xs font-semibold uppercase tracking-widest text-gray-500 px-1">
+                  Select Tee Set
+                </div>
+                <ul className="border border-[#e5e1d8] rounded-xl overflow-hidden divide-y divide-[#e5e1d8] bg-white" role="listbox" aria-label="Tee sets">
+                  {teeSets.map(ts => (
+                    <li key={ts.tee_name}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={courseRating === ts.course_rating && slopeRating === ts.slope_rating}
+                        onClick={() => handleSelectTeeSet(ts)}
+                        className={`w-full text-left px-4 py-3 transition-colors min-h-[48px] flex items-center justify-between ${
+                          courseRating === ts.course_rating && slopeRating === ts.slope_rating
+                            ? 'bg-[#eaf4e8]'
+                            : 'hover:bg-[#f5f0e8] active:bg-[#eae6dd]'
+                        }`}
+                      >
+                        <span className="font-semibold text-sm text-[#1a1a1a]">{ts.tee_name}</span>
+                        <span className="text-xs text-gray-500 tabular-nums">
+                          {ts.course_rating.toFixed(1)} / {ts.slope_rating}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {courseRating !== null && slopeRating !== null && (
+              <div className="text-xs font-semibold text-[#2d5a27] bg-[#eaf4e8] rounded-full px-3 py-1 self-start">
+                Rating {courseRating.toFixed(1)} / Slope {slopeRating}
+              </div>
+            )}
           </div>
 
           {/* Course Name */}
@@ -313,4 +482,3 @@ export default function GroupRoundHost() {
     </main>
   )
 }
-
