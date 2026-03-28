@@ -66,6 +66,10 @@ export default function GroupRoundJoin() {
         p_room_code: roomCode,
       })
       if (rpcError) throw rpcError
+      if (!data) {
+        setError('Unable to check room — please try again.')
+        return
+      }
       const result = data as { error?: string; status?: string; createdAt?: string }
       if (result.error === 'not_found') {
         setError('Code not found. Check the code and try again.')
@@ -91,6 +95,10 @@ export default function GroupRoundJoin() {
         p_player_name: displayName.trim(),
       })
       if (rpcError) throw rpcError
+      if (!data) {
+        setError('Unable to join — please try again.')
+        return
+      }
 
       const result = data as JoinRpcResult
       if (!result.success) {
