@@ -3,6 +3,7 @@ import { useAppStore } from '../store'
 import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
+import DiscordInviteBanner from '../components/DiscordInviteBanner'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -46,7 +47,7 @@ export default function Summary() {
 
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
   const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0), 0)
-  const totalPar = round.holes.reduce((s, h) => s + h.par, 0)
+  const totalPar = round.holes.slice(0, round.holeCount).reduce((s, h) => s + h.par, 0)
   const playedPar = playedHoles.reduce((s, h) => s + h.par, 0)
   const diff = totalStrokes - playedPar
 
@@ -232,6 +233,9 @@ export default function Summary() {
           </tfoot>
         </table>
       </div>
+
+      {/* Discord invite nudge */}
+      <DiscordInviteBanner />
 
       {/* Actions */}
       <div className="flex gap-3 pb-4">

@@ -3,7 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { useHandicapEstimate } from '../hooks/useHandicapEstimate'
 import { RestoreRoundBanner } from '../components/RestoreRoundBanner'
+import FriendsPlayingCard from '../components/FriendsPlayingCard'
 import { fetchActiveRound } from '../lib/sync'
+import DiscordInviteBanner from '../components/DiscordInviteBanner'
 
 const DISCLAIMER_KEY = 'gc-handicap-disclaimer-dismissed'
 
@@ -193,6 +195,12 @@ export default function Home() {
           </Link>
         </div>
       )}
+
+      {/* Friends in active rounds */}
+      <FriendsPlayingCard />
+
+      {/* Discord beta community invite */}
+      <DiscordInviteBanner permanent />
 
       {/* Handicap estimate widget */}
       <HandicapWidget />

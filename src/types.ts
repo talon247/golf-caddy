@@ -107,6 +107,21 @@ export interface SyncedRound extends Round {
   remoteId?: string
 }
 
+// ── Side Games ────────────────────────────────────────────────────────────
+
+export type SideGameType = 'skins' | 'nassau' | 'press' | 'stableford'
+
+export interface SideGameConfig {
+  sideGamesEnabled: boolean
+  gameTypes: SideGameType[]
+  stakePerSkin: number | null
+  nassauStakeFront: number | null
+  nassauStakeBack: number | null
+  nassauStakeOverall: number | null
+  pressEnabled: boolean
+  pressTriggerThreshold: number
+}
+
 // ── Multiplayer / Group Round ──────────────────────────────────────────────
 
 /** Combined status covering both host flow and DB states */
@@ -186,6 +201,7 @@ export interface FriendRoundInfo {
   playerCount: number
   maxPlayers: number
 }
+
 
 export type JoinError = 'not_found' | 'expired' | 'full' | 'network'
 
