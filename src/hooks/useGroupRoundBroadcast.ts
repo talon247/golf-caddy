@@ -103,6 +103,11 @@ export function useGroupRoundBroadcast(
     channelRef.current = channel
   }, [groupRoundId, myPlayerId, updateScore, setSideGameConfig])
 
+  // Clear stale broadcast deltas when switching to a different group round
+  useEffect(() => {
+    allBroadcastsRef.current.clear()
+  }, [groupRoundId])
+
   // Initial subscription + cleanup on unmount
   useEffect(() => {
     subscribe()
