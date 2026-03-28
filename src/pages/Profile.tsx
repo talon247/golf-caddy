@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { signOut } from '../lib/auth'
-import { fetchProfile, syncClubs, syncRoundToSupabase } from '../lib/sync'
+import { fetchProfile, syncClubs, migrateLocalRounds } from '../lib/sync'
 import { AuthModal } from '../components/AuthModal'
+import { UsernameSetup } from '../components/UsernameSetup'
 import type { Round } from '../types'
 
 function computeStats(rounds: Round[]) {
@@ -62,13 +63,14 @@ export default function Profile() {
   const setAuthState = useAppStore(s => s.setAuthState)
   const setProfile = useAppStore(s => s.setProfile)
 
-  const storeMarkRoundSynced = useAppStore(s => s.markRoundSynced)
+  const syncStatus = useAppStore(s => s.syncStatus)
 
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup'>('signin')
   const [signingOut, setSigningOut] = useState(false)
   const [showSyncBanner, setShowSyncBanner] = useState(false)
   const [syncingLocal, setSyncingLocal] = useState(false)
+  const [showUsernameSetup, setShowUsernameSetup] = useState(false)
 
   // THEA-139: Fetch profile from Supabase on mount (when signed in)
   // THEA-140: Trigger club bag sync once when authenticated
@@ -123,6 +125,11 @@ export default function Profile() {
     }
     setSyncingLocal(false)
     setShowSyncBanner(false)
+  }
+
+  function handleUsernameSet(username: string) {
+    if (profile) setProfile({ ...profile, username })
+    setShowUsernameSetup(false)
   }
 
   const stats = computeStats(rounds)
@@ -231,6 +238,30 @@ export default function Profile() {
             <div className="text-[#6b6b6b] text-sm mt-0.5">
               Handicap Index: <span className="font-semibold text-[#2d5a27]">{handicap}</span>
             </div>
+            {profile?.username ? (
+              <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                <span className="text-[#6b6b6b] text-sm">@{profile.username}</span>
+                <button
+                  onClick={() => setShowUsernameSetup(true)}
+                  aria-label="Edit username"
+                  className="text-[#6b6b6b] hover:text-[#2d5a27] transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 max-w-xs mx-auto">
+                <p className="text-sm text-amber-800">Set a username so friends can find you</p>
+                <button
+                  onClick={() => setShowUsernameSetup(true)}
+                  className="text-sm font-semibold text-[#2d5a27] underline shrink-0"
+                >
+                  Set Username
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -302,6 +333,10 @@ export default function Profile() {
         onClose={() => setShowAuthModal(false)}
         defaultTab={authModalTab}
       />
+
+      {showUsernameSetup && userId && (
+        <UsernameSetup userId={userId} onComplete={handleUsernameSet} />
+      )}
     </>
   )
 }

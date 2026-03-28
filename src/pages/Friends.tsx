@@ -256,18 +256,6 @@ export default function Friends() {
         {/* ── Search / Add ──────────────────────────────────── */}
         {activeTab === 'search' && (
           <>
-            {!profile?.username && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-2 text-sm text-amber-800">
-                Set a username first so friends can find you too.{' '}
-                <button
-                  onClick={() => setShowUsernameSetup(true)}
-                  className="underline font-semibold"
-                >
-                  Set username
-                </button>
-              </div>
-            )}
-
             <input
               type="search"
               value={searchQuery}

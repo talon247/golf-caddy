@@ -1,4 +1,4 @@
-import type { Round } from '../types'
+import type { Round, Club } from '../types'
 
 export type TimeRange = "last10" | "last30d" | "last90d" | "alltime"
 
@@ -107,13 +107,14 @@ export function calcThreePuttPercentage(rounds: Round[]): number | null {
   return (threePutts / holesWithPutts.length) * 100
 }
 
-export function calcClubUsage(rounds: Round[]): { clubName: string; shots: number; percentage: number }[] {
+export function calcClubUsage(rounds: Round[], clubs: Club[]): { clubName: string; shots: number; percentage: number }[] {
+  const clubMap = new Map(clubs.map(c => [c.id, c.name]))
   const counts: Record<string, number> = {}
   for (const round of rounds) {
     for (const hole of round.holes) {
       for (const shot of hole.shots) {
-        const isPutter = shot.clubId.toLowerCase().includes("putter")
-        if (isPutter) continue
+        const name = clubMap.get(shot.clubId) ?? shot.clubId
+        if (name.toLowerCase().includes("putter")) continue
         counts[shot.clubId] = (counts[shot.clubId] ?? 0) + 1
       }
     }
@@ -124,9 +125,9 @@ export function calcClubUsage(rounds: Round[]): { clubName: string; shots: numbe
   return entries
     .sort((a, b) => b[1] - a[1])
     .map(([clubId, shots]) => ({
-      clubName: clubId,
+      clubName: clubMap.get(clubId) ?? clubId,
       shots,
-      percentage: (shots / totalShots) * 100,
+      percentage: Math.round((shots / totalShots) * 100),
     }))
 }
 

@@ -172,7 +172,12 @@ export async function fetchActiveRound(userId: string): Promise<Round | null> {
 
 // ── Fetch rounds ──────────────────────────────────────────────────────────
 
-export async function fetchRounds(userId: string): Promise<Round[]> {
+export async function fetchRounds(
+  userId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<Round[]> {
+  const limit = options?.limit ?? 50
+  const offset = options?.offset ?? 0
   try {
     const { data: roundRows, error } = await supabase
       .from('rounds')
@@ -180,11 +185,12 @@ export async function fetchRounds(userId: string): Promise<Round[]> {
       .eq('user_id', userId)
       .is('deleted_at', null)
       .order('started_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) throw error
     if (!roundRows || roundRows.length === 0) return []
 
-    // Batch-fetch holes and shots to avoid N+1
+    // Batch-fetch holes and shots to avoid N+1 (only for this page of rounds)
     const roundIds = roundRows.map(r => r.id)
 
     const { data: holeRows } = await supabase

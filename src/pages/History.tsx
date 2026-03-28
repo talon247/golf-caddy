@@ -40,10 +40,14 @@ export default function History() {
 
   const navigate = useNavigate()
 
+  const PAGE_SIZE = 50
+
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [mergedRounds, setMergedRounds] = useState<Round[]>([])
   const [filter, setFilter] = useState<HoleFilter>('all')
-  const [visibleCount, setVisibleCount] = useState<number>(20)
+  const [cloudOffset, setCloudOffset] = useState(0)
+  const [hasMoreCloud, setHasMoreCloud] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -55,13 +59,17 @@ export default function History() {
           .filter(r => r.completedAt != null)
           .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
         setMergedRounds(completed)
+        setHasMoreCloud(false)
         return
       }
 
       setLoading(true)
       try {
-        const cloudRounds = await fetchRounds(userId)
+        const cloudRounds = await fetchRounds(userId, { limit: PAGE_SIZE, offset: 0 })
         if (cancelled) return
+
+        setCloudOffset(PAGE_SIZE)
+        setHasMoreCloud(cloudRounds.length === PAGE_SIZE)
 
         // Merge: dedup by id, prefer cloud version
         const cloudMap = new Map<string, Round>(cloudRounds.map(r => [r.id, r]))
@@ -78,6 +86,7 @@ export default function History() {
           .filter(r => r.completedAt != null)
           .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
         setMergedRounds(completed)
+        setHasMoreCloud(false)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -86,6 +95,25 @@ export default function History() {
     load()
     return () => { cancelled = true }
   }, [isAuthenticated, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleLoadMore() {
+    if (!userId || loadingMore || !hasMoreCloud) return
+    setLoadingMore(true)
+    try {
+      const nextPage = await fetchRounds(userId, { limit: PAGE_SIZE, offset: cloudOffset })
+      setCloudOffset(prev => prev + PAGE_SIZE)
+      setHasMoreCloud(nextPage.length === PAGE_SIZE)
+      setMergedRounds(prev => {
+        const existingIds = new Set(prev.map(r => r.id))
+        const newRounds = nextPage.filter(r => !existingIds.has(r.id) && r.completedAt != null)
+        return [...prev, ...newRounds].sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
+      })
+    } catch (err) {
+      console.error('[History] loadMore failed:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const allCount = mergedRounds.length
   const count18 = mergedRounds.filter(r => r.holeCount === 18).length
@@ -97,12 +125,8 @@ export default function History() {
     return true
   })
 
-  const visibleRounds = filteredRounds.slice(0, visibleCount)
-  const hasMore = visibleCount < filteredRounds.length
-
   function handleFilterChange(newFilter: HoleFilter) {
     setFilter(newFilter)
-    setVisibleCount(20)
   }
 
   function handleRowTap(round: Round) {
@@ -188,7 +212,7 @@ export default function History() {
           </div>
         ) : (
           <>
-            {visibleRounds.map(round => {
+            {filteredRounds.map(round => {
               const vsParResult = computeScoreVsPar(round)
               const { label: vsParLabel, className: vsParClass } = formatVsPar(vsParResult)
               const status = syncStatus[round.id] ?? 'local'
@@ -227,12 +251,13 @@ export default function History() {
               )
             })}
 
-            {hasMore && (
+            {hasMoreCloud && (
               <button
-                onClick={() => setVisibleCount(c => c + 20)}
-                className="w-full py-3 text-[#2d5a27] font-semibold text-sm border border-[#e5e1d8] rounded-2xl bg-white active:scale-[0.98] transition-transform mt-1"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="w-full py-3 text-[#2d5a27] font-semibold text-sm border border-[#e5e1d8] rounded-2xl bg-white active:scale-[0.98] transition-transform mt-1 disabled:opacity-60"
               >
-                Load more ({filteredRounds.length - visibleCount} remaining)
+                {loadingMore ? 'Loading…' : 'Load more'}
               </button>
             )}
           </>

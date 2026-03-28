@@ -4,8 +4,10 @@
 import type { SyncQueueItem } from '../types'
 import { syncRoundToSupabase } from './sync'
 import { useAppStore } from '../store'
+import { useToastStore } from '../store/toastStore'
 
 const STORAGE_KEY = 'golf_caddy_sync_queue'
+const MAIN_STORAGE_KEY = 'golf-caddy-state'
 const MAX_RETRIES = 3
 
 // Backoff delays in ms for retry attempts 1, 2, 3 (index = retries after failure)
@@ -26,11 +28,47 @@ export function getQueue(): SyncQueueItem[] {
   }
 }
 
+/**
+ * Evict oldest synced rounds from main state to free localStorage quota.
+ * Removes the oldest half of synced completed rounds.
+ */
+function evictOldSyncedRounds(): void {
+  try {
+    const raw = localStorage.getItem(MAIN_STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as {
+      rounds?: Array<{ id: string; completedAt?: number }>
+      syncStatus?: Record<string, string>
+    }
+    if (!Array.isArray(parsed.rounds)) return
+    const syncStatus = parsed.syncStatus ?? {}
+    const synced = parsed.rounds
+      .filter(r => syncStatus[r.id] === 'synced' && r.completedAt != null)
+      .sort((a, b) => (a.completedAt ?? 0) - (b.completedAt ?? 0))
+    if (synced.length === 0) return
+    const toEvict = new Set(synced.slice(0, Math.max(1, Math.floor(synced.length / 2))).map(r => r.id))
+    parsed.rounds = parsed.rounds.filter(r => !toEvict.has(r.id))
+    for (const id of toEvict) delete syncStatus[id]
+    parsed.syncStatus = syncStatus
+    localStorage.setItem(MAIN_STORAGE_KEY, JSON.stringify(parsed))
+  } catch {
+    // Eviction is best-effort
+  }
+}
+
 function saveQueue(queue: SyncQueueItem[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queue))
-  } catch {
-    // Silently ignore localStorage errors (private browsing, quota, etc.)
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+      evictOldSyncedRounds()
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(queue))
+      } catch {
+        useToastStore.getState().addToast('Storage full — some offline data may not be saved. Clear old rounds to free space.')
+      }
+    }
+    // Other errors (private browsing, etc.) silently ignored
   }
 }
 

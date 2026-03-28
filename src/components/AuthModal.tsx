@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../store'
 import { signIn, signUp, resetPassword } from '../lib/auth'
-import { syncRoundToSupabase } from '../lib/sync'
+import { migrateLocalRounds } from '../lib/sync'
+import { useToastStore } from '../store/toastStore'
 import { MigrationPrompt } from './MigrationPrompt'
 
 type Tab = 'signin' | 'signup'
@@ -34,7 +35,7 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
   const setAuthState = useAppStore(s => s.setAuthState)
   const rounds = useAppStore(s => s.rounds)
-  const storeMarkRoundSynced = useAppStore(s => s.markRoundSynced)
+  const syncStatus = useAppStore(s => s.syncStatus)
 
   const [tab, setTab] = useState<Tab>(defaultTab)
   const [loading, setLoading] = useState(false)
@@ -174,9 +175,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
       const user = res.data?.user
       if (user) {
         setAuthState(user.id, null)
-        // Check for unsynced local rounds
+        // Check for completed, unsynced local rounds
         const unsyncedRounds = rounds.filter(
-          r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+          r => r.completedAt != null &&
+            syncStatus[r.id] !== 'synced' &&
+            syncStatus[r.id] !== 'pending',
         )
         if (unsyncedRounds.length > 0) {
           setMigrationUserId(user.id)
@@ -202,17 +205,17 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
   async function handleMigrationConfirm() {
     if (!migrationUserId) return
     setShowMigration(false)
-    // Batch sync all unsynced rounds
-    const unsyncedRounds = rounds.filter(
-      r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+    const currentSyncStatus = useAppStore.getState().syncStatus
+    const unsyncedRounds = useAppStore.getState().rounds.filter(
+      r => r.completedAt != null &&
+        currentSyncStatus[r.id] !== 'synced' &&
+        currentSyncStatus[r.id] !== 'pending',
     )
-    for (const round of unsyncedRounds) {
-      try {
-        await syncRoundToSupabase(round, migrationUserId)
-        storeMarkRoundSynced(round.id)
-      } catch (err) {
-        console.error('[AuthModal] batch sync failed for round', round.id, err)
-      }
+    const { synced, failed } = await migrateLocalRounds(migrationUserId, unsyncedRounds)
+    if (failed > 0) {
+      useToastStore.getState().addToast(`Synced ${synced} round${synced !== 1 ? 's' : ''}; ${failed} failed — will retry when online`)
+    } else if (synced > 0) {
+      useToastStore.getState().addToast(`Synced ${synced} round${synced !== 1 ? 's' : ''} successfully`)
     }
     onClose()
   }
