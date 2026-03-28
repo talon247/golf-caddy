@@ -1,31 +1,34 @@
+import { lazy, Suspense } from 'react'
 import * as Sentry from '@sentry/react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGroupRoundRecovery } from './hooks/useGroupRoundRecovery'
 import { AuthProvider } from './components/AuthProvider'
 import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
-import Home from './pages/Home'
-import Setup from './pages/Setup'
-import Round from './pages/Round'
-import RoundUndoA from './pages/RoundUndoA'
-import RoundUndoB from './pages/RoundUndoB'
-import RoundUndoC from './pages/RoundUndoC'
-import Summary from './pages/Summary'
-import Bag from './pages/Bag'
-import Courses from './pages/Courses'
-import GroupRound from './pages/GroupRound'
-import GroupRoundHost from './pages/GroupRoundHost'
-import GroupRoundJoin from './pages/GroupRoundJoin'
-import HandicapHistory from './pages/HandicapHistory'
-import ResetPassword from './pages/ResetPassword'
-import Profile from './pages/Profile'
-import History from './pages/History'
-import Analytics from './pages/Analytics'
-import Friends from './pages/Friends'
-import SettlementHistory from './pages/SettlementHistory'
-import NotFound from './pages/NotFound'
+import { LoadingScreen } from './components/LoadingScreen'
 import { RouteErrorBoundary } from './components/RouteErrorBoundary'
 import { Toaster } from './components/Toaster'
+
+const Home = lazy(() => import('./pages/Home'))
+const Setup = lazy(() => import('./pages/Setup'))
+const Round = lazy(() => import('./pages/Round'))
+const RoundUndoA = lazy(() => import('./pages/RoundUndoA'))
+const RoundUndoB = lazy(() => import('./pages/RoundUndoB'))
+const RoundUndoC = lazy(() => import('./pages/RoundUndoC'))
+const Summary = lazy(() => import('./pages/Summary'))
+const Bag = lazy(() => import('./pages/Bag'))
+const Courses = lazy(() => import('./pages/Courses'))
+const GroupRound = lazy(() => import('./pages/GroupRound'))
+const GroupRoundHost = lazy(() => import('./pages/GroupRoundHost'))
+const GroupRoundJoin = lazy(() => import('./pages/GroupRoundJoin'))
+const HandicapHistory = lazy(() => import('./pages/HandicapHistory'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const Profile = lazy(() => import('./pages/Profile'))
+const History = lazy(() => import('./pages/History'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Friends = lazy(() => import('./pages/Friends'))
+const SettlementHistory = lazy(() => import('./pages/SettlementHistory'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 function AppInner() {
   useGroupRoundRecovery()
@@ -40,6 +43,7 @@ function App() {
         <AppInner />
         <div className="flex flex-col min-h-svh bg-cream">
           <Header />
+          <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/setup" element={<Setup />} />
@@ -63,6 +67,7 @@ function App() {
             <Route path="/settlement-history" element={<SettlementHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           <BottomNav />
           <Toaster />
         </div>
