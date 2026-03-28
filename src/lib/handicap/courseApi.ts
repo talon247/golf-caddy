@@ -1,6 +1,6 @@
 // GolfCourseAPI.com client
+// Docs: https://golfcourseapi.com
 // API key from VITE_GOLF_COURSE_API_KEY env var
-// Field names based on THEA-87 API findings
 
 const BASE_URL = 'https://api.golfcourseapi.com/v1'
 
@@ -8,12 +8,17 @@ function getApiKey(): string {
   return (import.meta.env.VITE_GOLF_COURSE_API_KEY as string | undefined) ?? ''
 }
 
+// ── Types matching the actual API response ────────────────────────────────
+
 export interface GolfApiCourse {
-  id: string
+  id: number          // API returns numeric id
   club_name: string
   course_name: string
-  city: string
-  state_name: string
+  location: {
+    city: string
+    state: string
+    country: string
+  }
 }
 
 export interface TeeSet {
@@ -21,20 +26,26 @@ export interface TeeSet {
   course_rating: number
   slope_rating: number
   number_of_holes: number
+  total_yards?: number
+  par_total?: number
 }
 
 export interface GolfApiCourseDetails {
-  id: string
+  id: number
   club_name: string
   course_name: string
-  city: string
-  state_name: string
-  tee_sets: TeeSet[]
+  location: {
+    city: string
+    state: string
+    country: string
+  }
+  tees: {
+    male: TeeSet[]
+    female: TeeSet[]
+  }
 }
 
-interface SearchResponse {
-  courses: GolfApiCourse[]
-}
+// ── Search ────────────────────────────────────────────────────────────────
 
 export async function searchCourses(
   query: string,
@@ -42,8 +53,9 @@ export async function searchCourses(
 ): Promise<GolfApiCourse[]> {
   const apiKey = getApiKey()
   if (!apiKey) return []
+  if (query.trim().length < 2) return []
 
-  const url = `${BASE_URL}/courses?search=${encodeURIComponent(query)}`
+  const url = `${BASE_URL}/courses?search=${encodeURIComponent(query.trim())}`
   const res = await fetch(url, {
     headers: { Authorization: `Key ${apiKey}` },
     signal,
@@ -53,18 +65,20 @@ export async function searchCourses(
   if (res.status === 404) return []
   if (!res.ok) throw new Error(`search_error_${res.status}`)
 
-  const data = (await res.json()) as SearchResponse
+  const data = await res.json() as { courses?: GolfApiCourse[] }
   return data.courses ?? []
 }
 
+// ── Course Details (with tee sets) ────────────────────────────────────────
+
 export async function getCourseDetails(
-  courseId: string,
+  courseId: number | string,
   signal?: AbortSignal,
 ): Promise<GolfApiCourseDetails> {
   const apiKey = getApiKey()
   if (!apiKey) throw new Error('no_api_key')
 
-  const url = `${BASE_URL}/courses/${encodeURIComponent(courseId)}`
+  const url = `${BASE_URL}/courses/${encodeURIComponent(String(courseId))}`
   const res = await fetch(url, {
     headers: { Authorization: `Key ${apiKey}` },
     signal,
@@ -74,5 +88,7 @@ export async function getCourseDetails(
   if (res.status === 429) throw new Error('rate_limit')
   if (!res.ok) throw new Error(`fetch_error_${res.status}`)
 
-  return res.json() as Promise<GolfApiCourseDetails>
+  const data = await res.json() as { course?: GolfApiCourseDetails } | GolfApiCourseDetails
+  // API wraps response in { course: ... }
+  return ('course' in data && data.course) ? data.course : data as GolfApiCourseDetails
 }

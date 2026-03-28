@@ -22,7 +22,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
   const [mode, setMode] = useState<Mode>('search')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GolfApiCourse[]>([])
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
   const [teeSets, setTeeSets] = useState<TeeSet[]>([])
   const [searching, setSearching] = useState(false)
   const [loadingDetails, setLoadingDetails] = useState(false)
@@ -81,7 +81,10 @@ export default function CourseEntryStep({ value, onChange }: Props) {
 
     try {
       const details = await getCourseDetails(course.id, abortRef.current.signal)
-      setTeeSets(details.tee_sets ?? [])
+      // Prefer male tees, fall back to female, combine if needed
+      const maleTees = details.tees?.male ?? []
+      const femaleTees = details.tees?.female ?? []
+      setTeeSets(maleTees.length > 0 ? maleTees : femaleTees)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
       // On error, fall to manual
@@ -196,7 +199,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
                     className="w-full text-left px-4 py-3 hover:bg-[#f5f0e8] active:bg-[#eae6dd] transition-colors min-h-[48px]"
                   >
                     <div className="font-semibold text-[#1a1a1a] text-sm">{c.club_name}</div>
-                    <div className="text-xs text-gray-500">{c.course_name} · {c.city}, {c.state_name}</div>
+                    <div className="text-xs text-gray-500">{c.course_name} · {c.location?.city}, {c.location?.state}</div>
                   </button>
                 </li>
               ))}
@@ -336,3 +339,4 @@ export default function CourseEntryStep({ value, onChange }: Props) {
     </div>
   )
 }
+
