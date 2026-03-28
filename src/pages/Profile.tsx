@@ -153,7 +153,7 @@ export default function Profile() {
   if (!isAuthenticated) {
     return (
       <>
-        <main className="flex flex-col flex-1 items-center justify-center p-6 bg-[#f5f0e8] text-center">
+        <main className="flex flex-col flex-1 items-center justify-center p-6 pb-20 bg-[#f5f0e8] text-center">
           <div className="text-6xl mb-4">⛳</div>
           <h1 className="text-2xl font-black text-[#2d5a27] mb-2">Sign in to save your rounds</h1>
           <p className="text-[#6b6b6b] mb-8 max-w-xs">
@@ -204,7 +204,7 @@ export default function Profile() {
 
   return (
     <>
-      <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full bg-[#f5f0e8]">
+      <main className="flex flex-col flex-1 p-6 pb-20 gap-6 max-w-lg mx-auto w-full bg-[#f5f0e8]">
         {/* Post-sign-in sync banner */}
         {showSyncBanner && unsyncedCount > 0 && (
           <div className="bg-[#2d5a27]/10 border border-[#2d5a27]/20 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">

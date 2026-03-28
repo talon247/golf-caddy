@@ -155,7 +155,7 @@ export default function GroupRoundJoin() {
   }
 
   return (
-    <main className="flex flex-col flex-1 p-6 max-w-sm mx-auto w-full pt-10">
+    <main className="flex flex-col flex-1 p-6 pb-20 max-w-sm mx-auto w-full pt-10">
       {step === 'code' && (
         <CodeEntry
           code={code}

@@ -47,7 +47,7 @@ export default function HandicapHistory() {
     .map(d => d.differential)
 
   return (
-    <main className="flex flex-col flex-1 p-4 gap-5 max-w-lg mx-auto w-full">
+    <main className="flex flex-col flex-1 p-4 pb-20 gap-5 max-w-lg mx-auto w-full">
       <div>
         <h1 className="text-2xl font-bold text-forest">Handicap Estimate</h1>
         <p className="text-warm-gray text-sm mt-0.5">Based on WHS formula — unofficial estimate</p>

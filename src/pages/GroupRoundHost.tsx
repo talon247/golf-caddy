@@ -229,7 +229,7 @@ export default function GroupRoundHost() {
 
   if (state === 'loading') {
     return (
-      <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
+      <main className="flex flex-col flex-1 items-center justify-center p-6 pb-20 gap-4">
         <div className="text-4xl animate-pulse">⛳</div>
         <p className="text-warm-gray text-lg font-medium">Creating room…</p>
       </main>
@@ -238,7 +238,7 @@ export default function GroupRoundHost() {
 
   if (state === 'error') {
     return (
-      <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
+      <main className="flex flex-col flex-1 items-center justify-center p-6 pb-20 gap-4">
         <button onClick={() => navigate('/')} className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target">
           Back to Home
         </button>
@@ -248,7 +248,7 @@ export default function GroupRoundHost() {
 
   if (phase === 'setup') {
     return (
-      <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
+      <main className="flex flex-col flex-1 p-6 pb-20 gap-6 max-w-lg mx-auto w-full">
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
@@ -423,7 +423,7 @@ export default function GroupRoundHost() {
   }
 
   return (
-    <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
+    <main className="flex flex-col flex-1 p-6 pb-20 gap-6 max-w-lg mx-auto w-full">
       <div className="text-center pt-2">
         <h1 className="text-2xl font-black text-forest">Group Round</h1>
         <p className="text-warm-gray text-sm mt-0.5">Share this code with your playing partners</p>

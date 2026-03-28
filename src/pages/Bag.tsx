@@ -53,7 +53,7 @@ export default function Bag() {
   }
 
   return (
-    <main className="flex flex-col flex-1 p-4 max-w-lg mx-auto w-full">
+    <main className="flex flex-col flex-1 p-4 pb-20 max-w-lg mx-auto w-full">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-bold text-forest">My Bag</h1>
         <button

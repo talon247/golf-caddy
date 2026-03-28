@@ -39,7 +39,7 @@ export default function Courses() {
 
   if (view === 'create') {
     return (
-      <main className="flex flex-col flex-1 p-5 max-w-[390px] mx-auto w-full">
+      <main className="flex flex-col flex-1 p-5 pb-20 max-w-[390px] mx-auto w-full">
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => setView('list')}
@@ -57,7 +57,7 @@ export default function Courses() {
 
   if (view === 'edit' && editing) {
     return (
-      <main className="flex flex-col flex-1 p-5 max-w-[390px] mx-auto w-full">
+      <main className="flex flex-col flex-1 p-5 pb-20 max-w-[390px] mx-auto w-full">
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={() => { setEditing(null); setView('list') }}
@@ -74,7 +74,7 @@ export default function Courses() {
   }
 
   return (
-    <main className="flex flex-col flex-1 p-5 max-w-[390px] mx-auto w-full">
+    <main className="flex flex-col flex-1 p-5 pb-20 max-w-[390px] mx-auto w-full">
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate('/')}

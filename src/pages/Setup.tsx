@@ -232,7 +232,7 @@ export default function Setup() {
         </div>
 
         {/* CTA */}
-        <div className="sticky bottom-0 bg-[#f5f0e8] border-t border-[#e5e1d8] px-4 pt-3 pb-4">
+        <div className="sticky bottom-16 bg-[#f5f0e8] border-t border-[#e5e1d8] px-4 pt-3 pb-4">
           <button
             type="submit"
             className="w-full bg-[#2d5a27] text-white rounded-xl py-4 text-lg font-bold min-h-[56px] active:scale-95 transition-transform"

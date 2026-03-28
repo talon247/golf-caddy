@@ -161,7 +161,7 @@ export default function History() {
       )}
 
       {/* Content */}
-      <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-6 gap-2">
+      <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-20 gap-2">
         {loading ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <div className="flex flex-col items-center gap-3 text-[#6b6b6b]">

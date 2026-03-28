@@ -92,7 +92,7 @@ export default function Summary() {
   }
 
   return (
-    <main className="flex flex-col flex-1 p-4 gap-5 max-w-lg mx-auto w-full">
+    <main className="flex flex-col flex-1 p-4 pb-24 gap-5 max-w-lg mx-auto w-full">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-forest">{round.courseName}</h1>
