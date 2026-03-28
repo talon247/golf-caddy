@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react'
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGroupRoundRecovery } from './hooks/useGroupRoundRecovery'
+import { Header } from './components/Header'
 import Home from './pages/Home'
 import Setup from './pages/Setup'
 import Round from './pages/Round'
@@ -13,41 +14,6 @@ import Courses from './pages/Courses'
 import GroupRoundHost from './pages/GroupRoundHost'
 import GroupRoundJoin from './pages/GroupRoundJoin'
 import HandicapHistory from './pages/HandicapHistory'
-
-function Header() {
-  return (
-    <header className="bg-forest text-cream px-4 py-3 flex items-center justify-between shadow-md">
-      <span className="font-bold text-lg tracking-wide">⛳ Golf Caddy</span>
-      <nav className="flex gap-4 text-sm">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
-          }
-        >
-          Home
-        </NavLink>
-        <NavLink
-          to="/bag"
-          className={({ isActive }) =>
-            `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
-          }
-        >
-          Bag
-        </NavLink>
-        <NavLink
-          to="/handicap"
-          className={({ isActive }) =>
-            `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
-          }
-        >
-          HCP
-        </NavLink>
-      </nav>
-    </header>
-  )
-}
 
 function AppInner() {
   useGroupRoundRecovery()
