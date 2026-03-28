@@ -4,11 +4,11 @@ import { useAppStore } from '../store'
 const TEMPLATES = [
   {
     name: 'Full 14',
-    clubs: ['Driver', '3W', '5W', '4i', '5i', '6i', '7i', '8i', '9i', 'PW', 'SW', 'LW', 'Putter'],
+    clubs: ['Driver', '3W', '5W', '3H', '4i', '5i', '6i', '7i', '8i', '9i', 'PW', 'SW', 'LW', 'Putter'],
   },
   {
     name: '9-Club Starter',
-    clubs: ['Driver', '5W', '5i', '7i', '9i', 'PW', 'SW', 'Putter'],
+    clubs: ['Driver', '5W', '5i', '7i', '9i', 'PW', 'GW', 'SW', 'Putter'],
   },
   {
     name: 'Irons Only',
