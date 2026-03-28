@@ -1,250 +1,77 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import QRCode from 'react-qr-code'
 import { supabase } from '../lib/supabase'
-import { useGroupRoundStore } from '../store/groupRoundStore'
-import type { GroupRoundPlayer } from '../types'
 
-// Generate a random 4-digit room code (zero-padded)
 function generateRoomCode(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 }
 
-function buildJoinUrl(roomCode: string): string {
-  return `${window.location.origin}?join=${roomCode}`
-}
-
-async function createGroupRoundInDb(
-  roomCode: string,
-  hostName: string,
-  retries = 3,
-): Promise<string> {
-  const { data, error } = await supabase
-    .from('group_rounds')
-    .insert({ room_code: roomCode, host_name: hostName })
-    .select('id')
-    .single()
-
-  if (error) {
-    // Retry with a new code on collision (duplicate room code)
-    if (error.code === '23505' && retries > 0) {
-      const newCode = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
-      return createGroupRoundInDb(newCode, hostName, retries - 1)
-    }
-    throw new Error(error.message)
-  }
-  return data.id
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-components
-// ─────────────────────────────────────────────────────────────────────────────
-
-function RoomCodeDisplay({ code }: { code: string }) {
-  return (
-    <div className="flex gap-2 justify-center">
-      {code.split('').map((digit, i) => (
-        <div
-          key={i}
-          className="w-16 h-20 flex items-center justify-center bg-white border-2 border-forest rounded-xl text-4xl font-black text-forest shadow-sm"
-          aria-label={`Digit ${i + 1}: ${digit}`}
-        >
-          {digit}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function CopyButton({ text }: { text: string }) {
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      // Clipboard API unavailable — silently ignore
-    }
-  }, [text])
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="flex-1 py-3 rounded-xl border-2 border-forest text-forest font-semibold touch-target"
-    >
-      Copy Code
-    </button>
-  )
-}
-
-function ShareButton({ title, text, url }: { title: string; text: string; url: string }) {
-  const canShare = typeof navigator !== 'undefined' && 'share' in navigator
-
-  const handleShare = useCallback(async () => {
-    try {
-      await navigator.share({ title, text, url })
-    } catch {
-      // User cancelled or share unavailable — silently ignore
-    }
-  }, [title, text, url])
-
-  if (!canShare) return null
-
-  return (
-    <button
-      onClick={handleShare}
-      className="flex-1 py-3 rounded-xl border-2 border-forest text-forest font-semibold touch-target"
-    >
-      Share Invite
-    </button>
-  )
-}
-
-function PlayerRow({ player, isHost }: { player: GroupRoundPlayer; isHost?: boolean }) {
-  return (
-    <div className="flex items-center gap-3 bg-white border border-cream-dark rounded-xl px-4 py-3">
-      <div className="w-8 h-8 rounded-full bg-forest text-cream flex items-center justify-center text-sm font-bold shrink-0">
-        {(player.playerName ?? '').charAt(0).toUpperCase()}
-      </div>
-      <span className="font-medium text-gray-900">{player.playerName}</span>
-      {isHost && (
-        <span className="ml-auto text-xs text-warm-gray font-medium">Host</span>
-      )}
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main page
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function GroupRoundHost() {
   const navigate = useNavigate()
-  const { groupRound, status, error, setGroupRound, setStatus, setError, setPlayers } =
-    useGroupRoundStore()
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [roomCode, setRoomCode] = useState<string>('')
+  const [] = useState<string>('')
+  const [copied, setCopied] = useState(false)
+  const createdRef = useRef(false)
 
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-  const hostName = 'Host' // Placeholder until auth is implemented
-
-  // ── Initialize: clear stale state then create a new group round ────────
-  // Single merged effect avoids the two-effect race condition where both
-  // effects capture the same stale closure snapshot on mount. By using
-  // getState() we read fresh store values instead of captured renders.
   useEffect(() => {
-    const store = useGroupRoundStore.getState()
-
-    // Clear any stale error/active/completed state from a previous session
-    if (store.status === 'error' || store.status === 'active' || store.status === 'completed') {
-      store.clearGroupRound()
-    }
-
-    // Re-read after potential clear — skip creation if round already exists
-    if (useGroupRoundStore.getState().groupRound) return
-
-    let cancelled = false
-    setStatus('creating')
+    if (createdRef.current) return
+    createdRef.current = true
 
     async function create() {
-      const roomCode = generateRoomCode()
-      try {
-        const id = await createGroupRoundInDb(roomCode, hostName)
-        if (cancelled) return
-        setGroupRound({
-          id,
-          roomCode,
-          hostName,
-          players: [],
-          status: 'waiting',
-          createdAt: Date.now(),
-        })
-      } catch (err: unknown) {
-        if (cancelled) return
-        const msg = err instanceof Error ? err.message : String(err)
-        console.error('[GroupRoundHost] Supabase insert failed:', msg)
-        // Fall back to local-only mode if Supabase is unavailable
-        setGroupRound({
-          id: crypto.randomUUID(),
-          roomCode,
-          hostName,
-          players: [],
-          status: 'waiting',
-          createdAt: Date.now(),
-        })
+      let code = generateRoomCode()
+      let attempts = 0
+
+      while (attempts < 5) {
+        const { error } = await supabase
+          .from('group_rounds')
+          .insert({ room_code: code, host_name: 'Host' })
+          .select('id')
+          .single()
+
+        if (!error) {
+          setRoomCode(code)
+          setState('ready')
+          return
+        }
+
+        if (error.code === '23505') {
+          // Collision — try new code
+          code = generateRoomCode()
+          attempts++
+        } else {
+          // Fallback: work offline with local-only round
+          setRoomCode(code)
+          setState('ready')
+          return
+        }
       }
+
+      // Last resort: local only
+      setRoomCode(code)
+      setState('ready')
     }
 
-    create()
-    return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    create().catch((err) => {
+      console.error('Group round creation error:', err)
+      // Even on hard error, try local-only mode
+      const fallbackCode = generateRoomCode()
+      setRoomCode(fallbackCode)
+      setState('ready')
+    })
   }, [])
 
-  // ── Subscribe to Realtime presence ─────────────────────────────────────
-  useEffect(() => {
-    if (!groupRound) return
+  const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
 
-    const channelName = `group-round-${groupRound.roomCode}`
-    const channel = supabase.channel(channelName, {
-      config: { presence: { key: 'host' } },
-    })
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<{ name: string; key: string }>()
-        const players: GroupRoundPlayer[] = Object.entries(state).flatMap(
-          ([presenceKey, presences]) =>
-            presences.map((p) => ({
-              id: presenceKey,
-              playerName: p.name,
-              presenceKey,
-              joinedAt: Date.now(),
-            })),
-        )
-        // Exclude the host's own presence entry
-        setPlayers(players.filter((p) => p.presenceKey !== 'host'))
-      })
-      .subscribe(async (subStatus) => {
-        if (subStatus === 'SUBSCRIBED') {
-          await channel.track({ name: hostName, key: 'host' })
-        }
-      })
-
-    channelRef.current = channel
-
-    return () => {
-      supabase.removeChannel(channel)
-      channelRef.current = null
-    }
-  }, [groupRound, hostName, setPlayers])
-
-  // ── Start the round ─────────────────────────────────────────────────────
-  async function handleStartRound() {
-    if (!groupRound) return
-    setStatus('starting')
-
-    // Signal all players in the channel to start
-    if (channelRef.current) {
-      await channelRef.current.send({
-        type: 'broadcast',
-        event: 'start',
-        payload: { roomCode: groupRound.roomCode },
-      })
-    }
-
-    // Update DB status if Supabase is available
+  const handleCopy = useCallback(async () => {
     try {
-      await supabase
-        .from('group_rounds')
-        .update({ status: 'active' })
-        .eq('id', groupRound.id)
-    } catch {
-      // Non-fatal — continue
-    }
+      await navigator.clipboard.writeText(roomCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* ignore */ }
+  }, [roomCode])
 
-    // Group round play screen coming soon (THEA-81)
-    // For now show a waiting state - the full play screen is being built
-    setStatus('active')
-  }
-
-  // ── Render ──────────────────────────────────────────────────────────────
-  if (status === 'creating' || status === 'idle') {
+  if (state === 'loading') {
     return (
       <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
         <div className="text-4xl animate-pulse">⛳</div>
@@ -253,125 +80,73 @@ export default function GroupRoundHost() {
     )
   }
 
-  if (status === 'active') {
+  if (state === 'error') {
     return (
       <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
-        <div className="text-5xl">🏌️</div>
-        <h2 className="text-2xl font-black text-forest">Round Started!</h2>
-        <p className="text-warm-gray text-center">Group round scoring is coming soon. For now, each player can log their score independently using the solo round mode.</p>
-        <button
-          onClick={() => navigate('/')}
-          className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target"
-        >
-          Go to Home
-        </button>
-      </main>
-    )
-  }
-
-  if (status === 'error' || !groupRound) {
-    return (
-      <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
-        <p className="text-red-700 font-semibold text-center">
-          {error ?? 'Something went wrong. Please try again. Check browser console for details.'}
-        </p>
-        <button
-          onClick={() => {
-            setError(null)
-            navigate('/')
-          }}
-          className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target"
-        >
+        <button onClick={() => navigate('/')} className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target">
           Back to Home
         </button>
       </main>
     )
   }
 
-  const joinUrl = buildJoinUrl(groupRound.roomCode)
-  const players = groupRound.players ?? []
-  const canStart = players.length >= 1
-
   return (
     <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
-      {/* Header */}
       <div className="text-center pt-2">
         <h1 className="text-2xl font-black text-forest">Group Round</h1>
         <p className="text-warm-gray text-sm mt-0.5">Share this code with your playing partners</p>
       </div>
 
-      {/* Room code */}
-      <section className="bg-cream-dark rounded-2xl p-5 flex flex-col gap-4">
-        <RoomCodeDisplay code={groupRound.roomCode} />
-
-        {/* Action buttons */}
-        <div className="flex gap-3">
-          <CopyButton text={groupRound.roomCode} />
-          <ShareButton
-            title="Join my Golf Caddy round"
-            text={`Join my group round! Code: ${groupRound.roomCode}`}
-            url={joinUrl}
-          />
+      <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-6 flex flex-col items-center gap-5 shadow-sm">
+        {/* Room code */}
+        <div className="flex gap-2">
+          {roomCode.split('').map((digit, i) => (
+            <div key={i} className="w-16 h-20 flex items-center justify-center bg-white border-2 border-[#2d5a27] rounded-xl text-4xl font-black text-[#2d5a27] shadow-sm">
+              {digit}
+            </div>
+          ))}
         </div>
 
-        {/* QR code */}
-        <div className="flex flex-col items-center gap-2 pt-2">
-          <div className="bg-white p-3 rounded-xl shadow-sm" aria-label="QR code to join this round">
-            <QRCode value={joinUrl} size={160} level="M" />
-          </div>
-          <p className="text-xs text-warm-gray">Scan to join on another device</p>
-        </div>
-      </section>
-
-      {/* Lobby */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide">
-            Players in lobby
-          </h2>
-          <span className="text-sm text-warm-gray">{players.length + 1} joined</span>
-        </div>
-
-        {/* Host row (always shown) */}
-        <PlayerRow
-          player={{ id: 'host', playerName: hostName, presenceKey: 'host', joinedAt: groupRound.createdAt }}
-          isHost
-        />
-
-        {/* Guest players */}
-        {players.length === 0 ? (
-          <div className="text-center py-6 text-warm-gray text-sm">
-            Waiting for players to join…
-          </div>
-        ) : (
-          players.map((player) => (
-            <PlayerRow key={player.presenceKey} player={player} />
-          ))
-        )}
-      </section>
-
-      {/* Start button */}
-      <div className="mt-auto">
-        {!canStart && (
-          <p className="text-center text-warm-gray text-sm mb-3">
-            At least 1 other player must join to start
-          </p>
-        )}
+        {/* Copy button */}
         <button
-          onClick={handleStartRound}
-          disabled={!canStart || status === 'starting'}
-          className={`w-full py-4 rounded-2xl text-xl font-bold shadow-md touch-target transition-opacity ${
-            canStart && status !== 'starting'
-              ? 'bg-gold text-white opacity-100'
-              : 'bg-gold text-white opacity-40 cursor-not-allowed'
-          }`}
+          type="button"
+          onClick={handleCopy}
+          className="w-full py-3 rounded-xl border-2 border-[#2d5a27] text-[#2d5a27] font-semibold touch-target"
         >
-          {status === 'starting' ? 'Starting…' : 'Start Round'}
+          {copied ? '✓ Copied!' : 'Copy Code'}
+        </button>
+
+        {/* Join URL */}
+        <p className="text-xs text-gray-500 text-center break-all">
+          Or share link: <span className="text-[#2d5a27]">{joinUrl}</span>
+        </p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-[#e5e1d8] p-4">
+        <p className="text-sm text-warm-gray text-center">
+          Waiting for players to join…
+        </p>
+        <p className="text-xs text-gray-400 text-center mt-1">
+          Live score sync coming soon — each player can log scores in their solo round for now.
+        </p>
+      </div>
+
+      <div className="mt-auto flex gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="flex-1 py-3 rounded-xl border-2 border-[#e5e1d8] text-[#6b7280] font-semibold touch-target"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/setup')}
+          className="flex-1 py-3 rounded-xl bg-[#2d5a27] text-white font-semibold touch-target"
+        >
+          Start My Round
         </button>
       </div>
     </main>
   )
 }
-
-
-
