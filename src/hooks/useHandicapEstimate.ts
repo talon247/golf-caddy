@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useAppStore } from '../store'
+import { calcTotalStrokes } from '../utils/scoring'
 import {
   computeAGS,
   computeScoreDifferential,
@@ -39,7 +40,7 @@ export function useHandicapEstimate(): HandicapData {
       if (round.courseRating === undefined || round.slopeRating === undefined) continue
 
       const holeScores = round.holes.map(
-        h => h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0),
+        h => calcTotalStrokes(h, putterIds),
       )
       const holePars = round.holes.map(h => h.par)
 
@@ -89,13 +90,13 @@ export function useHandicapEstimate(): HandicapData {
  * Returns null if the round lacks course rating/slope data.
  */
 export function computeRoundDifferential(
-  round: { holes: { shots: { clubId: string }[]; putts?: number; par: number }[]; courseRating?: number; slopeRating?: number },
+  round: { holes: { number: number; shots: { clubId: string; timestamp: number }[]; putts?: number; par: number }[]; courseRating?: number; slopeRating?: number },
   putterIds: Set<string>,
 ): number | null {
   if (round.courseRating === undefined || round.slopeRating === undefined) return null
 
   const holeScores = round.holes.map(
-    h => h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0),
+    h => calcTotalStrokes(h, putterIds),
   )
   const holePars = round.holes.map(h => h.par)
   const ags = computeAGS(holeScores, holePars)
