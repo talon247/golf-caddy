@@ -24,6 +24,7 @@ export default function Setup() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [playerName, setPlayerName] = useState('')
   const [tees, setTees] = useState<string>('White')
+  const [courseEntryMode, setCourseEntryMode] = useState<'search' | 'manual'>('search')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
   const [courseEntry, setCourseEntry] = useState<CourseEntryValue>(DEFAULT_COURSE_ENTRY)
@@ -173,31 +174,37 @@ export default function Setup() {
             />
           </div>
 
-          {/* Tees */}
-          <div>
-            <div className="text-sm font-medium text-gray-500 mb-2">Tees</div>
-            <div className="flex flex-wrap gap-2">
-              {TEES.map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setTees(t)}
-                  className={`px-4 py-2 rounded-full border text-sm font-semibold min-h-[44px] flex items-center transition-colors ${
-                    tees === t
-                      ? 'border-[#2d5a27] bg-[#2d5a27] text-white'
-                      : 'border-[#e5e1d8] bg-white text-[#1a1a1a]'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Course Rating & Slope entry */}
           <div className="border-t border-[#e5e1d8] pt-5">
-            <CourseEntryStep value={courseEntry} onChange={handleCourseEntryChange} />
+            <CourseEntryStep
+              value={courseEntry}
+              onChange={handleCourseEntryChange}
+              onModeChange={setCourseEntryMode}
+            />
           </div>
+
+          {/* Tees — only relevant for manual entry */}
+          {courseEntryMode === 'manual' && (
+            <div>
+              <div className="text-sm font-medium text-gray-500 mb-2">Tees</div>
+              <div className="flex flex-wrap gap-2">
+                {TEES.map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTees(t)}
+                    className={`px-4 py-2 rounded-full border text-sm font-semibold min-h-[44px] flex items-center transition-colors ${
+                      tees === t
+                        ? 'border-[#2d5a27] bg-[#2d5a27] text-white'
+                        : 'border-[#e5e1d8] bg-white text-[#1a1a1a]'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Holes */}
           <div>

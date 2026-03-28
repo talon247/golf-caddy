@@ -15,13 +15,14 @@ export interface CourseEntryValue {
 interface Props {
   value: CourseEntryValue
   onChange: (value: CourseEntryValue) => void
+  onModeChange?: (mode: 'search' | 'manual') => void
 }
 
 type Mode = 'search' | 'manual'
 
 const SKIP_VALUE: CourseEntryValue = { teeSet: '', courseRating: null, slopeRating: null, skipped: true }
 
-export default function CourseEntryStep({ value, onChange }: Props) {
+export default function CourseEntryStep({ value, onChange, onModeChange }: Props) {
   const [mode, setMode] = useState<Mode>('search')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GolfApiCourse[]>([])
@@ -150,7 +151,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => { setMode('search'); setSelectedCourseId(null); setTeeSets([]) }}
+          onClick={() => { setMode('search'); setSelectedCourseId(null); setTeeSets([]); onModeChange?.('search') }}
           className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors min-h-[40px] ${
             mode === 'search'
               ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
@@ -161,7 +162,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => setMode('manual')}
+          onClick={() => { setMode('manual'); onModeChange?.('manual') }}
           className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors min-h-[40px] ${
             mode === 'manual'
               ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
