@@ -58,10 +58,16 @@ export default function GroupRoundHost() {
       let code = generateRoomCode()
       let attempts = 0
 
+      const { data: { session } } = await supabase.auth.getSession()
+
       while (attempts < 5) {
         const { data, error } = await supabase
           .from('group_rounds')
-          .insert({ room_code: code, host_name: hostName.trim() || 'Host' })
+          .insert({
+            room_code: code,
+            host_name: hostName.trim() || 'Host',
+            host_user_id: session?.user?.id ?? null,
+          })
           .select('id')
           .single()
 

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Course, CourseHole } from '../types'
-import { useCourseStore } from '../store'
+import { useAppStore, useCourseStore } from '../store'
+import { updateProfile } from '../lib/sync'
 import CourseForm from '../components/CourseForm'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -10,10 +11,25 @@ type View = 'list' | 'create' | 'edit'
 export default function Courses() {
   const navigate = useNavigate()
   const { courses, addCourse, updateCourse, deleteCourse } = useCourseStore()
+  const userId = useAppStore(s => s.userId)
+  const profile = useAppStore(s => s.profile)
+  const setProfile = useAppStore(s => s.setProfile)
 
   const [view, setView] = useState<View>('list')
   const [editing, setEditing] = useState<Course | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [settingHomeId, setSettingHomeId] = useState<string | null>(null)
+
+  async function handleSetHome(course: Course) {
+    if (!userId || !profile) return
+    setSettingHomeId(course.id)
+    try {
+      await updateProfile(userId, { homeCourse: course.name })
+      setProfile({ ...profile, homeCourse: course.name })
+    } finally {
+      setSettingHomeId(null)
+    }
+  }
 
   function handleSaveNew(name: string, holes: CourseHole[]) {
     addCourse(name, holes)
@@ -108,6 +124,21 @@ export default function Courses() {
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
+                  {userId && profile && (
+                    profile.homeCourse === course.name ? (
+                      <span className="px-3 py-2 rounded-lg border border-[#2d5a27] text-sm font-medium text-[#2d5a27] bg-[#2d5a27]/10 min-h-[40px] flex items-center gap-1">
+                        ✓ Home
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleSetHome(course)}
+                        disabled={settingHomeId === course.id}
+                        className="px-3 py-2 rounded-lg border border-[#e5e1d8] text-sm font-medium text-[#2d5a27] bg-white min-h-[40px] disabled:opacity-60"
+                      >
+                        {settingHomeId === course.id ? 'Saving…' : 'Set Home'}
+                      </button>
+                    )
+                  )}
                   <button
                     onClick={() => startEdit(course)}
                     className="px-3 py-2 rounded-lg border border-[#e5e1d8] text-sm font-medium text-[#2d5a27] bg-white min-h-[40px]"

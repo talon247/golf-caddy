@@ -235,6 +235,7 @@ export interface Database {
           id: string
           room_code: string
           host_name: string
+          host_user_id: string | null
           status: GroupRoundDbStatus
           course_name: string | null
           hole_count: number | null
@@ -250,6 +251,7 @@ export interface Database {
           id?: string
           room_code: string
           host_name: string
+          host_user_id?: string | null
           status?: GroupRoundDbStatus
           course_name?: string | null
           hole_count?: number | null
@@ -269,6 +271,7 @@ export interface Database {
           course_rating?: number | null
           slope_rating?: number | null
           side_games_enabled?: boolean
+          host_user_id?: string | null
           updated_at?: string
         }
         Relationships: []

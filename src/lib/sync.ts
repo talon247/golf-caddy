@@ -382,18 +382,17 @@ export async function updateProfile(
   userId: string,
   profile: Partial<UserProfile>,
 ): Promise<void> {
+  const patch: Record<string, unknown> = {}
+  if (profile.displayName !== undefined) patch.display_name = profile.displayName
+  if (profile.homeCourse !== undefined) patch.home_course = profile.homeCourse
+  if (profile.handicapIndex !== undefined) patch.handicap_index = profile.handicapIndex
+
+  if (Object.keys(patch).length === 0) return
+
   try {
-    await supabase.from('profiles').upsert(
-      {
-        id: userId,
-        display_name: profile.displayName ?? '',
-        home_course: profile.homeCourse ?? null,
-        handicap_index: profile.handicapIndex ?? null,
-      },
-      { onConflict: 'id' },
-    )
-  } catch (err) {
-    console.error('[sync] updateProfile error:', err)
+    await supabase.from('profiles').update(patch).eq('id', userId)
+  } catch {
+    // update failed — caller can retry
   }
 }
 

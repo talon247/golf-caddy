@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { signOut } from '../lib/auth'
-import { fetchProfile, syncClubs, migrateLocalRounds } from '../lib/sync'
+import { fetchProfile, syncClubs, migrateLocalRounds, updateProfile } from '../lib/sync'
 import { AuthModal } from '../components/AuthModal'
 import { UsernameSetup } from '../components/UsernameSetup'
 import { CANNY_WISH_LIST_URL } from '../lib/config'
@@ -72,6 +72,9 @@ export default function Profile() {
   const [showSyncBanner, setShowSyncBanner] = useState(false)
   const [syncingLocal, setSyncingLocal] = useState(false)
   const [showUsernameSetup, setShowUsernameSetup] = useState(false)
+  const [editingHomeCourse, setEditingHomeCourse] = useState(false)
+  const [homeCourseInput, setHomeCourseInput] = useState('')
+  const [savingHomeCourse, setSavingHomeCourse] = useState(false)
 
   // THEA-139: Fetch profile from Supabase on mount (when signed in)
   // THEA-140: Trigger club bag sync once when authenticated
@@ -134,6 +137,26 @@ export default function Profile() {
   function handleUsernameSet(username: string) {
     if (profile) setProfile({ ...profile, username })
     setShowUsernameSetup(false)
+  }
+
+  async function handleHomeCourseEdit() {
+    setHomeCourseInput(profile?.homeCourse ?? '')
+    setEditingHomeCourse(true)
+  }
+
+  async function handleHomeCourseSave() {
+    if (!userId || !profile) return
+    const trimmed = homeCourseInput.trim()
+    setSavingHomeCourse(true)
+    try {
+      await updateProfile(userId, { homeCourse: trimmed || undefined })
+      setProfile({ ...profile, homeCourse: trimmed || undefined })
+      setEditingHomeCourse(false)
+    } catch {
+      // save failed — input stays open so user can retry
+    } finally {
+      setSavingHomeCourse(false)
+    }
   }
 
   const stats = computeStats(rounds)
@@ -273,24 +296,55 @@ export default function Profile() {
 
         {/* Home course */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e5e1d8]">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-[#6b6b6b] mb-0.5">
-                Home Course
+          <div className="text-xs font-semibold uppercase tracking-widest text-[#6b6b6b] mb-0.5">
+            Home Course
+          </div>
+          {editingHomeCourse ? (
+            <div className="flex flex-col gap-2 mt-1">
+              <input
+                type="text"
+                value={homeCourseInput}
+                onChange={e => setHomeCourseInput(e.target.value)}
+                placeholder="e.g. Pine Valley Golf Club"
+                autoFocus
+                className="border border-[#e5e1d8] rounded-xl px-4 py-3 text-base bg-white text-[#1a1a1a] focus:ring-2 focus:ring-[#2d5a27] focus:border-[#2d5a27] outline-none min-h-[48px] w-full"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleHomeCourseSave()
+                  if (e.key === 'Escape') setEditingHomeCourse(false)
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleHomeCourseSave}
+                  disabled={savingHomeCourse}
+                  className="flex-1 bg-[#2d5a27] text-white rounded-xl py-2.5 text-sm font-bold active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  {savingHomeCourse ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setEditingHomeCourse(false)}
+                  disabled={savingHomeCourse}
+                  className="flex-1 border border-[#e5e1d8] text-[#6b6b6b] rounded-xl py-2.5 text-sm font-semibold active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  Cancel
+                </button>
               </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
               <div className="text-[#1a1a1a] font-semibold">
                 {homeCourse ?? (
                   <span className="text-[#6b6b6b] font-normal">Not set</span>
                 )}
               </div>
+              <button
+                onClick={handleHomeCourseEdit}
+                className="text-[#2d5a27] text-sm font-semibold border border-[#2d5a27] rounded-xl px-3 py-1.5 active:scale-95 transition-transform"
+              >
+                Edit
+              </button>
             </div>
-            <Link
-              to="/courses"
-              className="text-[#2d5a27] text-sm font-semibold border border-[#2d5a27] rounded-xl px-3 py-1.5"
-            >
-              Edit
-            </Link>
-          </div>
+          )}
         </div>
 
         {/* Stats row */}
