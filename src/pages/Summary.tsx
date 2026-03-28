@@ -53,7 +53,7 @@ export default function Summary() {
   })
 
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
   const totalPar = round.holes.slice(0, round.holeCount).reduce((s, h) => s + h.par, 0)
   const playedPar = playedHoles.reduce((s, h) => s + h.par, 0)
   const diff = totalStrokes - playedPar
@@ -61,7 +61,7 @@ export default function Summary() {
   // Score breakdown
   const counts = { ace: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }
   for (const h of playedHoles) {
-    const d = (h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0)) - h.par
+    const d = (h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)) - h.par
     if (h.shots.length === 1) counts.ace++
     else if (d <= -2) counts.eagle++
     else if (d === -1) counts.birdie++
@@ -75,6 +75,63 @@ export default function Summary() {
   const gir = calcGIR(round.holes, putterIds)
   const fairways = calcFairwaysHit(round.holes)
   const hasStats = puttsAvg !== null || gir !== null || fairways !== null
+
+  // Club usage breakdown
+  const clubUsage = (() => {
+    const usage = new Map<string, number>()
+    for (const h of playedHoles) {
+      for (const shot of h.shots) {
+        if (!putterIds.has(shot.clubId)) {
+          const club = bag.find(c => c.id === shot.clubId)
+          const name = club?.name ?? 'Unknown'
+          usage.set(name, (usage.get(name) ?? 0) + 1)
+        }
+      }
+    }
+    return [...usage.entries()].sort((a, b) => b[1] - a[1])
+  })()
+  const hasShots = playedHoles.some(h => h.shots.length > 0)
+  const totalPutts = playedHoles.reduce((sum, h) => sum + (h.putts ?? 0), 0)
+  const totalPenalties = playedHoles.reduce((sum, h) => sum + (h.penalties ?? 0), 0)
+
+  // Score by par type
+  const parTypeScoring = (() => {
+    const groups = new Map<number, { totalStrokes: number; count: number; totalPar: number }>()
+    for (const h of playedHoles) {
+      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const group = groups.get(h.par) ?? { totalStrokes: 0, count: 0, totalPar: 0 }
+      group.totalStrokes += strokes
+      group.count += 1
+      group.totalPar += h.par
+      groups.set(h.par, group)
+    }
+    return [...groups.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([par, g]) => ({
+        par,
+        avgDiff: (g.totalStrokes - g.totalPar) / g.count,
+        count: g.count,
+      }))
+  })()
+
+  // Front 9 / Back 9 split (18-hole only)
+  const frontBackSplit = (() => {
+    if (round.holeCount !== 18) return null
+    const front = playedHoles.filter(h => h.number <= 9)
+    const back = playedHoles.filter(h => h.number >= 10)
+    const calcNine = (holes: typeof playedHoles) => {
+      if (holes.length < 9) return null
+      const strokes = holes.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+      const par = holes.reduce((s, h) => s + h.par, 0)
+      return { strokes, par, diff: strokes - par }
+    }
+    return { front: calcNine(front), back: calcNine(back) }
+  })()
+
+  function formatAvgDiff(d: number): string {
+    if (Math.abs(d) < 0.05) return 'E'
+    return d > 0 ? `+${d.toFixed(1)}` : `\u2212${Math.abs(d).toFixed(1)}`
+  }
 
   // Handicap data
   const { result: handicapResult, differentials } = useHandicapEstimate()
@@ -179,6 +236,94 @@ export default function Summary() {
                 <div className="text-warm-gray text-xs">{fairways.hits} of {fairways.total} holes</div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Club Usage Breakdown */}
+      {hasShots && clubUsage.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-2">Club Usage</h2>
+          <div className="bg-white rounded-xl border border-cream-dark p-3 space-y-1">
+            {clubUsage.map(([name, count]) => (
+              <div key={name} className="flex justify-between text-sm">
+                <span className="text-gray-700">{name}</span>
+                <span className="font-bold text-forest">{count}</span>
+              </div>
+            ))}
+            {totalPutts > 0 && (
+              <div className="flex justify-between text-sm border-t border-cream-dark pt-1 mt-1">
+                <span className="text-gray-700">Putter</span>
+                <span className="font-bold text-forest">{totalPutts} putts</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Total Putts + Total Penalties */}
+      {(totalPutts > 0 || totalPenalties > 0) && (
+        <div className="grid grid-cols-2 gap-2 text-center text-sm">
+          {totalPutts > 0 && (
+            <div className="bg-white rounded-xl border border-cream-dark p-3">
+              <div className="text-xl font-black text-forest">{totalPutts}</div>
+              <div className="text-warm-gray text-xs mt-0.5">Total Putts</div>
+            </div>
+          )}
+          {totalPenalties > 0 && (
+            <div className="bg-white rounded-xl border border-cream-dark p-3">
+              <div className="text-xl font-black text-red-600">{totalPenalties}</div>
+              <div className="text-warm-gray text-xs mt-0.5">Penalties</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Score by Par Type */}
+      {parTypeScoring.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-2">By Par Type</h2>
+          <div className="grid grid-cols-3 gap-2 text-center text-sm">
+            {parTypeScoring.map(({ par, avgDiff, count }) => (
+              <div key={par} className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className={`text-xl font-black ${avgDiff > 0.05 ? 'text-red-600' : avgDiff < -0.05 ? 'text-forest-mid' : 'text-gray-700'}`}>
+                  {formatAvgDiff(avgDiff)}
+                </div>
+                <div className="text-warm-gray text-xs mt-0.5">Par {par}s</div>
+                <div className="text-warm-gray text-xs">{count} holes</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Front 9 / Back 9 Split */}
+      {frontBackSplit && (
+        <div>
+          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-2">Front / Back</h2>
+          <div className="grid grid-cols-2 gap-2 text-center text-sm">
+            <div className="bg-white rounded-xl border border-cream-dark p-3">
+              <div className="text-xl font-black text-forest">
+                {frontBackSplit.front ? frontBackSplit.front.strokes : '—'}
+              </div>
+              <div className="text-warm-gray text-xs mt-0.5">Front 9</div>
+              {frontBackSplit.front && (
+                <div className={`text-xs font-semibold ${frontBackSplit.front.diff > 0 ? 'text-red-600' : frontBackSplit.front.diff < 0 ? 'text-forest-mid' : 'text-gray-700'}`}>
+                  {scoreDiff(frontBackSplit.front.strokes, frontBackSplit.front.par)}
+                </div>
+              )}
+            </div>
+            <div className="bg-white rounded-xl border border-cream-dark p-3">
+              <div className="text-xl font-black text-forest">
+                {frontBackSplit.back ? frontBackSplit.back.strokes : '—'}
+              </div>
+              <div className="text-warm-gray text-xs mt-0.5">Back 9</div>
+              {frontBackSplit.back && (
+                <div className={`text-xs font-semibold ${frontBackSplit.back.diff > 0 ? 'text-red-600' : frontBackSplit.back.diff < 0 ? 'text-forest-mid' : 'text-gray-700'}`}>
+                  {scoreDiff(frontBackSplit.back.strokes, frontBackSplit.back.par)}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
