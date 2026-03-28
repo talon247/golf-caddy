@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useGroupRoundStore } from '../store/groupRoundStore'
@@ -24,6 +24,7 @@ export function useGroupRoundBroadcast(
   // Storing all holes (not just the last) ensures a reconnecting client re-receives the
   // full picture, not only the most recently played hole.
   const allBroadcastsRef = useRef<Map<number, ScoreDelta>>(new Map())
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const updateScore = useLeaderboardStore((s) => s.updateScore)
   const setSideGameConfig = useGroupRoundStore((s) => s.setSideGameConfig)
   const sideGameConfig = useGroupRoundStore((s) => s.sideGameConfig)
@@ -63,10 +64,12 @@ export function useGroupRoundBroadcast(
         },
       )
       .subscribe(async (status) => {
-        // Only run catch-up logic once the channel is fully connected.
-        // CHANNEL_ERROR / TIMED_OUT fire the same callback but the channel isn't
-        // ready to send yet, so skip those states.
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setIsOffline(true)
+          return
+        }
         if (status !== 'SUBSCRIBED') return
+        setIsOffline(!navigator.onLine)
 
         // On (re)connect: re-send ALL previously broadcast hole scores so that
         // any guest who missed one or more holes gets the complete picture.
@@ -125,15 +128,21 @@ export function useGroupRoundBroadcast(
       if (document.visibilityState === 'visible') subscribe()
     }
     function handleOnline() {
+      setIsOffline(false)
       subscribe()
+    }
+    function handleOffline() {
+      setIsOffline(true)
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
   }, [subscribe])
 
@@ -173,5 +182,5 @@ export function useGroupRoundBroadcast(
     [],
   )
 
-  return { broadcastScore, broadcastSideGameConfig, isOffline: false }
+  return { broadcastScore, broadcastSideGameConfig, isOffline }
 }
