@@ -376,7 +376,7 @@ export default function RoundUndoB() {
               </thead>
               <tbody>
                 {round.holes.map(h => {
-                  const s = h.shots.length
+                  const s = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0)
                   return (
                     <tr
                       key={h.number}
