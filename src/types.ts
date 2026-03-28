@@ -35,6 +35,9 @@ export interface Round {
   courseName: string
   courseId?: string
   tees: string
+  teeSet?: string
+  courseRating?: number
+  slopeRating?: number
   playerName: string
   holeCount: 9 | 18
   startedAt: number

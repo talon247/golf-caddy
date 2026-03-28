@@ -4,8 +4,17 @@ import { useAppStore } from '../store'
 import { useCourseStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
 import ParGridEditor from '../components/ParGridEditor'
+import CourseEntryStep from '../components/CourseEntryStep'
+import type { CourseEntryValue } from '../components/CourseEntryStep'
 
 const TEES = ['Black', 'Blue', 'White', 'Gold', 'Red'] as const
+
+const DEFAULT_COURSE_ENTRY: CourseEntryValue = {
+  teeSet: '',
+  courseRating: null,
+  slopeRating: null,
+  skipped: false,
+}
 
 export default function Setup() {
   const navigate = useNavigate()
@@ -18,6 +27,7 @@ export default function Setup() {
   const [tees, setTees] = useState<string>('White')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
+  const [courseEntry, setCourseEntry] = useState<CourseEntryValue>(DEFAULT_COURSE_ENTRY)
   const [showBagWarning, setShowBagWarning] = useState(false)
   const [showAbandonWarning, setShowAbandonWarning] = useState(false)
 
@@ -63,6 +73,9 @@ export default function Setup() {
       courseId: selectedCourseId ?? undefined,
       playerName: playerName.trim() || 'Player',
       tees,
+      teeSet: courseEntry.skipped ? undefined : (courseEntry.teeSet || undefined),
+      courseRating: courseEntry.skipped ? undefined : (courseEntry.courseRating ?? undefined),
+      slopeRating: courseEntry.skipped ? undefined : (courseEntry.slopeRating ?? undefined),
       holeCount,
       startedAt: Date.now(),
       holes: Array.from({ length: holeCount }, (_, i) => ({
@@ -178,6 +191,11 @@ export default function Setup() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Course Rating & Slope entry */}
+          <div className="border-t border-[#e5e1d8] pt-5">
+            <CourseEntryStep value={courseEntry} onChange={setCourseEntry} />
           </div>
 
           {/* Holes */}
