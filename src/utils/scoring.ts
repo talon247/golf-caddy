@@ -63,9 +63,10 @@ export function applyScoreDelta(existing: PlayerScore | undefined, delta: ScoreD
     }
   }
 
-  // Reject stale/duplicate deltas: if hole data already exists and timestamp is not newer, skip
+  // Reject stale/duplicate deltas: if hole data already exists and timestamp is strictly older, skip.
+  // Use strict < (not <=) so re-broadcasts with the same timestamp are accepted (e.g. on reconnect).
   const holeExists = existing.holes[delta.holeNumber] !== undefined
-  if (holeExists && delta.timestamp <= existing.lastSyncedAt) {
+  if (holeExists && delta.timestamp < existing.lastSyncedAt) {
     return existing
   }
 

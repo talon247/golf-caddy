@@ -20,6 +20,9 @@ export function useGroupRoundBroadcast(
   myPlayerId: string,
 ) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  // Tracks the last score delta we broadcast so we can re-send on channel reconnect.
+  // This ensures guests who join late or whose channel reconnects catch up to current state.
+  const lastBroadcastRef = useRef<ScoreDelta | null>(null)
   const updateScore = useLeaderboardStore((s) => s.updateScore)
   const setSideGameConfig = useGroupRoundStore((s) => s.setSideGameConfig)
   const sideGameConfig = useGroupRoundStore((s) => s.sideGameConfig)
@@ -59,6 +62,20 @@ export function useGroupRoundBroadcast(
         },
       )
       .subscribe(async () => {
+        // On (re)connect: re-send our last known score so any guests who missed a
+        // broadcast (due to channel reconnect or late join) see the current state.
+        if (lastBroadcastRef.current) {
+          try {
+            await channel.send({
+              type: 'broadcast',
+              event: 'score',
+              payload: lastBroadcastRef.current,
+            })
+          } catch {
+            // Non-fatal
+          }
+        }
+
         // On (re)connect: if we have no config in memory, attempt to rehydrate
         // from the DB. This covers late-joining players and reconnect scenarios.
         if (!sideGameConfigRef.current && groupRoundId) {
@@ -109,6 +126,8 @@ export function useGroupRoundBroadcast(
   const broadcastScore = useCallback(
     async (delta: ScoreDelta) => {
       if (!channelRef.current) return
+      // Store delta before sending so the subscribe callback can re-broadcast on reconnect
+      lastBroadcastRef.current = delta
       try {
         await channelRef.current.send({
           type: 'broadcast',
