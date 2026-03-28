@@ -1,11 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom"
-import { Home, Clock, BarChart2, User } from "lucide-react"
+import { Home, Clock, BarChart2, User, Users } from "lucide-react"
 import { useAppStore } from "../store"
+import { useFriendsStore } from "../store/friendsStore"
+import { FriendRequestBadge } from "./FriendRequestBadge"
 
 export function BottomNav() {
   const location = useLocation()
   const syncStatus = useAppStore(s => s.syncStatus)
   const isAuthenticated = useAppStore(s => s.isAuthenticated)
+  const pendingRequests = useFriendsStore(s => s.pendingRequests)
 
   // Hide bottom nav on round-playing screens
   const hiddenRoutes = ["/round", "/round-a", "/round-b", "/round-c"]
@@ -44,6 +47,16 @@ export function BottomNav() {
         <BarChart2 size={22} />
         <span>Analytics</span>
       </NavLink>
+
+      {isAuthenticated && (
+        <NavLink to="/friends" className={({ isActive }) => tabClass(isActive)}>
+          <div className="relative">
+            <Users size={22} />
+            <FriendRequestBadge count={pendingRequests.length} />
+          </div>
+          <span>Friends</span>
+        </NavLink>
+      )}
 
       <NavLink to="/profile" className={({ isActive }) => tabClass(isActive)}>
         <div className="relative">

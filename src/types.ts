@@ -59,9 +59,38 @@ export interface AppState {
 export interface UserProfile {
   id: string
   displayName: string
+  username?: string | null
   homeCourse?: string
   handicapIndex?: number | null
 }
+
+// ── Friends ────────────────────────────────────────────────────────────────
+
+export interface Friend {
+  friendshipId: string
+  friendUserId: string
+  displayName: string
+  username: string
+  handicapIndex?: number | null
+}
+
+export interface FriendRequest {
+  friendshipId: string
+  userId: string
+  displayName: string
+  username: string
+  createdAt: string
+}
+
+export interface FriendSearchResult {
+  userId: string
+  displayName: string
+  username: string
+  isFriend: boolean
+  hasPendingRequest: boolean
+}
+
+export type FriendRequestAction = 'accepted' | 'declined' | 'blocked'
 
 export interface SyncQueueItem {
   roundId: string
@@ -128,6 +157,33 @@ export interface PlayerScore {
   isOnline: boolean
   lastSyncedAt: string
   holes: Record<number, { strokes: number; putts: number; par: number }>
+}
+
+// ── Friends & Presence ────────────────────────────────────────────────────
+
+export interface PresenceState {
+  userId: string
+  displayName: string
+  status: 'online' | 'in_round'
+  groupRoundId?: string
+  roomCode?: string
+  courseName?: string
+  currentHole?: number
+  playerCount?: number
+  maxPlayers: number
+  joinable: boolean
+  updatedAt: string
+}
+
+export interface FriendRoundInfo {
+  userId: string
+  displayName: string
+  groupRoundId: string
+  roomCode: string
+  courseName?: string
+  currentHole?: number
+  playerCount: number
+  maxPlayers: number
 }
 
 export type JoinError = 'not_found' | 'expired' | 'full' | 'network'

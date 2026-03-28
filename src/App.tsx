@@ -20,6 +20,7 @@ import ResetPassword from './pages/ResetPassword'
 import Profile from './pages/Profile'
 import History from './pages/History'
 import Analytics from './pages/Analytics'
+import Friends from './pages/Friends'
 
 function AppInner() {
   useGroupRoundRecovery()
@@ -52,6 +53,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/history" element={<History />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/friends" element={<Friends />} />
           </Routes>
           <BottomNav />
         </div>

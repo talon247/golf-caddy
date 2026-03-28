@@ -1,10 +1,11 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
 export type RoundStatus = 'active' | 'completed' | 'abandoned'
 export type GroupRoundDbStatus = 'waiting' | 'active' | 'completed'
+export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked'
 
 export interface Database {
   public: {
@@ -15,6 +16,9 @@ export interface Database {
           display_name: string
           home_course: string | null
           handicap_index: number | null
+          username: string | null
+          presence_visible: boolean
+          friend_requests_open: boolean
           created_at: string
           updated_at: string
         }
@@ -23,6 +27,9 @@ export interface Database {
           display_name?: string
           home_course?: string | null
           handicap_index?: number | null
+          username?: string | null
+          presence_visible?: boolean
+          friend_requests_open?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -30,6 +37,9 @@ export interface Database {
           display_name?: string
           home_course?: string | null
           handicap_index?: number | null
+          username?: string | null
+          presence_visible?: boolean
+          friend_requests_open?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -266,6 +276,7 @@ export interface Database {
           group_round_id: string
           player_name: string
           presence_key: string | null
+          user_id: string | null
           joined_at: string
         }
         Insert: {
@@ -273,11 +284,36 @@ export interface Database {
           group_round_id: string
           player_name: string
           presence_key?: string | null
+          user_id?: string | null
           joined_at?: string
         }
         Update: {
           player_name?: string
           presence_key?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          id: string
+          requester_id: string
+          addressee_id: string
+          status: FriendshipStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          addressee_id: string
+          status?: FriendshipStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: FriendshipStatus
+          updated_at?: string
         }
         Relationships: []
       }
@@ -308,10 +344,52 @@ export interface Database {
         }
         Returns: Json
       }
+      check_username_available: {
+        Args: {
+          p_username: string
+        }
+        Returns: Json
+      }
+      send_friend_request: {
+        Args: {
+          p_addressee_username: string
+        }
+        Returns: Json
+      }
+      respond_friend_request: {
+        Args: {
+          p_friendship_id: string
+          p_action: string
+        }
+        Returns: Json
+      }
+      get_friends: {
+        Args: {
+          p_status?: string
+        }
+        Returns: Json
+      }
+      search_users: {
+        Args: {
+          p_query: string
+        }
+        Returns: Json
+      }
+      remove_friend: {
+        Args: {
+          p_friendship_id: string
+        }
+        Returns: Json
+      }
+      get_friends_in_rounds: {
+        Args: Record<string, never>
+        Returns: Json
+      }
     }
     Enums: {
       round_status: RoundStatus
       group_round_status: GroupRoundDbStatus
+      friendship_status: FriendshipStatus
     }
   }
 }

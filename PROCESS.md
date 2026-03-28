@@ -122,8 +122,12 @@ Definition of Done: QA sign-off + deploy
 | Branch | Purpose |
 |--------|---------|
 | `main` | Production — only Release Engineer merges here |
-| `v3` | Active V3 development — all V3 work branches from here |
-| `feat/thea-XXX-description` | Feature branches per ticket |
+| `v3` | **Active development branch** — all current work goes here |
+| `feat/thea-XXX-description` | Feature branches per ticket, merged into active branch |
+| `v2` | Frozen — milestone archive only. Do not touch. |
+
+**Rule: The Colony always works on the most recent version only.**
+When a new version branch is cut, the previous one is frozen permanently. No backports, no patches to old versions.
 
 Auto-deploy:
 - `v3` → Vercel preview (auto via GitHub Actions)
