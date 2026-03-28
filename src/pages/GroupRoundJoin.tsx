@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { saveGroupRoundRecovery } from '../storage'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = supabase.rpc.bind(supabase) as (...args: any[]) => any
@@ -62,10 +63,10 @@ export default function GroupRoundJoin() {
         p_room_code: roomCode,
       })
       if (rpcError) throw rpcError
-      const result = data as { error?: string; status?: string; expiresAt?: string }
+      const result = data as { error?: string; status?: string; createdAt?: string }
       if (result.error === 'not_found') {
         setError('Code not found. Check the code and try again.')
-      } else if (result.status === 'completed' || (result.expiresAt && new Date(result.expiresAt) < new Date())) {
+      } else if (result.status === 'completed' || (result.createdAt && Date.now() - new Date(result.createdAt).getTime() > 24 * 60 * 60 * 1000)) {
         setError('This round has already ended.')
       } else {
         setStep('name')
@@ -97,12 +98,12 @@ export default function GroupRoundJoin() {
         return
       }
 
+      const resolvedRoomCode = result.roomCode ?? roomCode
       const groupRound: GroupRound = {
         id: result.groupRoundId!,
-        roomCode: result.roomCode ?? code.join('').toUpperCase(),
+        roomCode: resolvedRoomCode,
         hostUserId: null,
         status: (result.status ?? 'waiting') as GroupRoundStatus,
-        expiresAt: '',
         createdAt: new Date().toISOString(),
       }
       const player: GroupRoundPlayer = {
@@ -116,6 +117,12 @@ export default function GroupRoundJoin() {
       resetLeaderboard()
       setGroupRound(groupRound)
       setCurrentPlayer(player)
+      saveGroupRoundRecovery({
+        groupRoundId: result.groupRoundId!,
+        roomCode: resolvedRoomCode,
+        playerId: result.playerId!,
+        playerName: displayName.trim(),
+      })
 
       // Catch-up: round already active — create local round and go directly to /round
       if (result.status === 'active' && result.holeCount && result.pars) {

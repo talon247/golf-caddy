@@ -1,5 +1,49 @@
 import type { AppState, Club, Course, Hole } from './types'
 
+// ── Group Round Recovery ───────────────────────────────────────────────────
+
+const GRP_RECOVERY_KEY = 'golf-caddy-group-round'
+
+export interface GroupRoundRecovery {
+  groupRoundId: string
+  roomCode: string
+  playerId?: string
+  playerName?: string
+}
+
+export function loadGroupRoundRecovery(): GroupRoundRecovery | null {
+  try {
+    const raw = localStorage.getItem(GRP_RECOVERY_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<GroupRoundRecovery>
+    if (typeof parsed.groupRoundId !== 'string' || typeof parsed.roomCode !== 'string') return null
+    return {
+      groupRoundId: parsed.groupRoundId,
+      roomCode: parsed.roomCode,
+      playerId: typeof parsed.playerId === 'string' ? parsed.playerId : undefined,
+      playerName: typeof parsed.playerName === 'string' ? parsed.playerName : undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+export function saveGroupRoundRecovery(data: GroupRoundRecovery): void {
+  try {
+    localStorage.setItem(GRP_RECOVERY_KEY, JSON.stringify(data))
+  } catch {
+    // Storage unavailable — silently ignore
+  }
+}
+
+export function clearGroupRoundRecovery(): void {
+  try {
+    localStorage.removeItem(GRP_RECOVERY_KEY)
+  } catch {
+    // Storage unavailable — silently ignore
+  }
+}
+
 const STORAGE_KEY = 'golf-caddy-state'
 
 export const DEFAULT_CLUBS: Club[] = [

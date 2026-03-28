@@ -5,6 +5,7 @@ import { useGroupRoundStore } from '../store/groupRoundStore'
 import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useAppStore } from '../store'
 import ParGridEditor from '../components/ParGridEditor'
+import { saveGroupRoundRecovery } from '../storage'
 
 function generateRoomCode(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
@@ -44,8 +45,12 @@ export default function GroupRoundHost() {
           .single()
 
         if (!error) {
+          const id = (data as { id: string } | null)?.id ?? null
           setRoomCode(code)
-          setGroupRoundId((data as { id: string } | null)?.id ?? null)
+          setGroupRoundId(id)
+          if (id) {
+            saveGroupRoundRecovery({ groupRoundId: id, roomCode: code })
+          }
           setState('ready')
           return
         }

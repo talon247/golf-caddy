@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { useGroupRoundRecovery } from './hooks/useGroupRoundRecovery'
 import Home from './pages/Home'
 import Setup from './pages/Setup'
 import Round from './pages/Round'
@@ -48,10 +49,16 @@ function Header() {
   )
 }
 
+function AppInner() {
+  useGroupRoundRecovery()
+  return null
+}
+
 function App() {
   return (
     <Sentry.ErrorBoundary fallback={<p className="p-8 text-center text-red-700">Something went wrong. Please reload the app.</p>} showDialog>
       <BrowserRouter>
+        <AppInner />
         <div className="flex flex-col min-h-svh bg-cream">
           <Header />
           <Routes>
