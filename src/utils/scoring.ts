@@ -63,6 +63,12 @@ export function applyScoreDelta(existing: PlayerScore | undefined, delta: ScoreD
     }
   }
 
+  // Reject stale/duplicate deltas: if hole data already exists and timestamp is not newer, skip
+  const holeExists = existing.holes[delta.holeNumber] !== undefined
+  if (holeExists && delta.timestamp <= existing.lastSyncedAt) {
+    return existing
+  }
+
   const updatedHoles = {
     ...existing.holes,
     [delta.holeNumber]: { strokes: delta.strokes, putts: delta.putts, par: delta.par },

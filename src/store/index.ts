@@ -4,6 +4,8 @@ export { useGroupRoundStore } from './groupRoundStore'
 import { create } from 'zustand'
 import type { Club, Round, Shot } from '../types'
 import { loadState, saveState } from '../storage'
+import { useGroupRoundStore } from './groupRoundStore'
+import { useLeaderboardStore } from './leaderboardStore'
 
 interface StoreState {
   clubBag: Club[]
@@ -209,6 +211,8 @@ export const useAppStore = create<StoreState>((set, get) => ({
     const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
     set({ rounds, activeRoundId })
     persist({ ...get(), rounds, activeRoundId })
+    useGroupRoundStore.getState().clearGroupRound()
+    useLeaderboardStore.getState().reset()
   },
 
   deleteRound: (roundId) => {
@@ -223,5 +227,7 @@ export const useAppStore = create<StoreState>((set, get) => ({
     const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
     set({ rounds, activeRoundId })
     persist({ ...get(), rounds, activeRoundId })
+    useGroupRoundStore.getState().clearGroupRound()
+    useLeaderboardStore.getState().reset()
   },
 }))
