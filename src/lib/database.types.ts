@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
@@ -162,6 +162,8 @@ export interface Database {
           par: number
           putts: number
           fairway_hit: boolean | null
+          penalties: number
+          gir: boolean | null
           created_at: string
           updated_at: string
         }
@@ -173,6 +175,8 @@ export interface Database {
           par: number
           putts?: number
           fairway_hit?: boolean | null
+          penalties?: number
+          gir?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -180,6 +184,8 @@ export interface Database {
           par?: number
           putts?: number
           fairway_hit?: boolean | null
+          penalties?: number
+          gir?: boolean | null
           updated_at?: string
         }
         Relationships: []
