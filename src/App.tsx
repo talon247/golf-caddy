@@ -21,6 +21,7 @@ import Profile from './pages/Profile'
 import History from './pages/History'
 import Analytics from './pages/Analytics'
 import Friends from './pages/Friends'
+import { Toaster } from './components/Toaster'
 
 function AppInner() {
   useGroupRoundRecovery()
@@ -56,6 +57,7 @@ function App() {
             <Route path="/friends" element={<Friends />} />
           </Routes>
           <BottomNav />
+          <Toaster />
         </div>
         </AuthProvider>
       </BrowserRouter>

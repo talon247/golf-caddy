@@ -4,6 +4,21 @@
 import { supabase } from './supabase'
 import type { Round, Hole, Shot, UserProfile, Club } from '../types'
 
+// ── Per-round sync mutex ───────────────────────────────────────────────────
+
+const syncingRounds = new Set<string>()
+
+/** Returns true if the lock was acquired; false if already syncing. */
+export function acquireSyncLock(roundId: string): boolean {
+  if (syncingRounds.has(roundId)) return false
+  syncingRounds.add(roundId)
+  return true
+}
+
+export function releaseSyncLock(roundId: string): void {
+  syncingRounds.delete(roundId)
+}
+
 // ── Round sync ────────────────────────────────────────────────────────────
 
 /**

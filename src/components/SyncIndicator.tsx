@@ -35,7 +35,7 @@ export function SyncIndicator({ status, onRetry }: SyncIndicatorProps) {
               e.stopPropagation()
               onRetry()
             }}
-            className="ml-0.5 text-xs font-semibold underline text-amber-600 active:opacity-70"
+            className="ml-0.5 text-xs font-semibold underline text-amber-600 active:opacity-70 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             Retry
           </button>

@@ -96,6 +96,7 @@ export interface SyncQueueItem {
   roundId: string
   queuedAt: number
   retries: number
+  nextRetryAt?: number
 }
 
 export type SyncStatusValue = 'local' | 'synced' | 'pending' | 'error'

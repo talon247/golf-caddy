@@ -7,8 +7,9 @@ import { loadState, saveState, type PersistedState } from '../storage'
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
-import { syncRoundToSupabase } from '../lib/sync'
+import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock } from '../lib/sync'
 import { addToQueue } from '../lib/syncQueue'
+import { useToastStore } from './toastStore'
 
 interface StoreState {
   clubBag: Club[]
@@ -347,16 +348,26 @@ export const useAppStore = create<StoreState>((set, get) => ({
     const { isAuthenticated, userId } = get()
     if (isAuthenticated && userId) {
       const completedRound = get().rounds.find(r => r.id === roundId)
-      if (completedRound) {
-        get().markRoundPending(roundId)
-        syncRoundToSupabase(completedRound, userId).then(result => {
-          if (result.success) {
-            get().markRoundSynced(roundId)
-          } else {
+      if (completedRound && acquireSyncLock(roundId)) {
+        get().markRoundPending(roundId) // persists syncStatus to localStorage before sync starts
+        syncRoundToSupabase(completedRound, userId)
+          .then(result => {
+            if (result.success) {
+              get().markRoundSynced(roundId)
+            } else {
+              get().markRoundError(roundId)
+              addToQueue(roundId)
+              useToastStore.getState().addToast('Sync failed — will retry when online')
+            }
+          })
+          .catch(() => {
             get().markRoundError(roundId)
             addToQueue(roundId)
-          }
-        })
+            useToastStore.getState().addToast('Sync failed — will retry when online')
+          })
+          .finally(() => {
+            releaseSyncLock(roundId)
+          })
       }
     }
     // If not authenticated, syncStatus stays 'local' (default)

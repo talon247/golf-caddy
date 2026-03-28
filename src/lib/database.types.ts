@@ -385,6 +385,22 @@ export interface Database {
         Args: Record<string, never>
         Returns: Json
       }
+      detect_orphaned_rounds: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: {
+          round_id: string
+          orphan_type: string
+          detail: string
+        }[]
+      }
+      recover_orphaned_rounds: {
+        Args: {
+          p_user_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       round_status: RoundStatus
