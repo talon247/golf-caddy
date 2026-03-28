@@ -258,7 +258,27 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      start_group_round: {
+        Args: {
+          p_group_round_id: string
+          p_course_name: string
+          p_hole_count: number
+          p_pars: number[]
+        }
+        Returns: undefined
+      }
+      join_group_round: {
+        Args: {
+          p_room_code: string
+          p_player_name: string
+        }
+        Returns: {
+          group_round_id: string
+          player_id: string
+        }
+      }
+    }
     Enums: {
       round_status: RoundStatus
       group_round_status: GroupRoundDbStatus

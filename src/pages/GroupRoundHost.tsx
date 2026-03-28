@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useGroupRoundStore } from '../store/groupRoundStore'
+import { useAppStore } from '../store'
+import ParGridEditor from '../components/ParGridEditor'
 
 function generateRoomCode(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
@@ -13,10 +15,16 @@ export default function GroupRoundHost() {
   const [roomCode, setRoomCode] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [groupRoundId, setGroupRoundId] = useState<string | null>(null)
-  const [starting, setStarting] = useState(false)
+  const [phase, setPhase] = useState<'lobby' | 'setup'>('lobby')
+  const [courseName, setCourseName] = useState('')
+  const [holeCount, setHoleCount] = useState<9 | 18>(18)
+  const [pars, setPars] = useState<number[]>(Array(18).fill(4))
+  const [submitting, setSubmitting] = useState(false)
   const createdRef = useRef(false)
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
+  const addRound = useAppStore((s) => s.addRound)
+  const setActiveRoundId = useAppStore((s) => s.setActiveRoundId)
 
   useEffect(() => {
     if (createdRef.current) return
@@ -60,39 +68,56 @@ export default function GroupRoundHost() {
     }
 
     create().catch(() => {
-      // Even on hard error, try local-only mode
       const fallbackCode = generateRoomCode()
       setRoomCode(fallbackCode)
       setState('ready')
     })
-  }, [setGroupRound])
+  }, [])
 
   const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
 
-  const handleStart = useCallback(async () => {
-    setStarting(true)
+  const handleStartRound = useCallback(async () => {
+    setSubmitting(true)
     try {
       if (groupRoundId) {
-        await supabase
-          .from('group_rounds')
-          .update({ status: 'active' })
-          .eq('id', groupRoundId)
+        await supabase.rpc('start_group_round', {
+          p_group_round_id: groupRoundId,
+          p_course_name: courseName.trim() || 'Group Round',
+          p_hole_count: holeCount,
+          p_pars: pars.slice(0, holeCount),
+        })
       }
-      // Store group round context for Setup to pick up
-      if (groupRoundId) {
-        localStorage.setItem('golf-caddy-group-round-id', groupRoundId)
-      }
-      navigate('/setup')
-    } catch (err) {
-      console.error('Failed to start round:', err)
-      if (groupRoundId) {
-        localStorage.setItem('golf-caddy-group-round-id', groupRoundId)
-      }
-      navigate('/setup') // navigate anyway
+
+      const id = crypto.randomUUID()
+      addRound({
+        id,
+        courseName: courseName.trim() || 'Group Round',
+        tees: '',
+        playerName: 'Host',
+        holeCount,
+        startedAt: Date.now(),
+        holes: Array.from({ length: holeCount }, (_, i) => ({
+          number: i + 1,
+          par: pars[i] ?? 4,
+          shots: [],
+        })),
+      })
+      setActiveRoundId(id)
+
+      setGroupRound({
+        id: groupRoundId ?? crypto.randomUUID(),
+        roomCode,
+        status: 'active',
+        hostUserId: null,
+        expiresAt: '',
+        createdAt: new Date().toISOString(),
+      })
+
+      navigate('/round')
     } finally {
-      setStarting(false)
+      setSubmitting(false)
     }
-  }, [groupRoundId, navigate])
+  }, [groupRoundId, courseName, holeCount, pars, addRound, setActiveRoundId, setGroupRound, roomCode, navigate])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -101,6 +126,14 @@ export default function GroupRoundHost() {
       setTimeout(() => setCopied(false), 2000)
     } catch { /* ignore */ }
   }, [roomCode])
+
+  const handleParChange = useCallback((index: number, par: number) => {
+    setPars(prev => {
+      const next = [...prev]
+      next[index] = par
+      return next
+    })
+  }, [])
 
   if (state === 'loading') {
     return (
@@ -117,6 +150,79 @@ export default function GroupRoundHost() {
         <button onClick={() => navigate('/')} className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target">
           Back to Home
         </button>
+      </main>
+    )
+  }
+
+  if (phase === 'setup') {
+    return (
+      <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setPhase('lobby')}
+            className="text-[#2d5a27] font-semibold touch-target"
+          >
+            ← Back
+          </button>
+          <h1 className="text-2xl font-black text-forest">Set Up the Course</h1>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {/* Course Name */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700" htmlFor="course-name">
+              Course Name
+            </label>
+            <input
+              id="course-name"
+              type="text"
+              value={courseName}
+              onChange={(e) => setCourseName(e.target.value)}
+              placeholder="Augusta National"
+              className="w-full py-3 px-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27]"
+            />
+          </div>
+
+          {/* Holes toggle */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-gray-700">Holes</span>
+            <div className="flex gap-3">
+              {([9, 18] as const).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setHoleCount(n)}
+                  className={`flex-1 py-3 rounded-xl border-2 font-semibold touch-target transition-colors ${
+                    holeCount === n
+                      ? 'bg-[#2d5a27] border-[#2d5a27] text-white'
+                      : 'bg-white border-[#e5e1d8] text-[#1a1a1a]'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Par grid */}
+          <ParGridEditor
+            holeCount={holeCount}
+            pars={pars}
+            onChange={handleParChange}
+          />
+        </div>
+
+        <div className="mt-auto">
+          <button
+            type="button"
+            onClick={handleStartRound}
+            disabled={submitting}
+            className="w-full py-3 rounded-xl bg-[#2d5a27] text-white font-semibold touch-target disabled:opacity-60"
+          >
+            {submitting ? 'Starting…' : 'Start Round'}
+          </button>
+        </div>
       </main>
     )
   }
@@ -172,15 +278,12 @@ export default function GroupRoundHost() {
         </button>
         <button
           type="button"
-          onClick={handleStart}
-          disabled={starting}
+          onClick={() => setPhase('setup')}
           className="flex-1 py-3 rounded-xl bg-[#2d5a27] text-white font-semibold touch-target"
         >
-          Start My Round
+          Set Up Course →
         </button>
       </div>
     </main>
   )
 }
-
-
