@@ -4,13 +4,17 @@ import { applyScoreDelta } from '../utils/scoring'
 
 interface LeaderboardState {
   players: PlayerScore[]
+  isLoading: boolean
   updateScore: (delta: ScoreDelta) => void
   setOffline: (playerId: string, offline: boolean) => void
+  setPlayers: (players: PlayerScore[]) => void
+  setLoading: (loading: boolean) => void
   reset: () => void
 }
 
 export const useLeaderboardStore = create<LeaderboardState>((set) => ({
   players: [],
+  isLoading: false,
 
   updateScore: (delta) =>
     set((state) => {
@@ -30,5 +34,9 @@ export const useLeaderboardStore = create<LeaderboardState>((set) => ({
       ),
     })),
 
-  reset: () => set({ players: [] }),
+  setPlayers: (players) => set({ players }),
+
+  setLoading: (loading) => set({ isLoading: loading }),
+
+  reset: () => set({ players: [], isLoading: false }),
 }))
