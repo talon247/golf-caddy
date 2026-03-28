@@ -1,5 +1,7 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
+
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
 export type RoundStatus = 'active' | 'completed' | 'abandoned'
 export type GroupRoundDbStatus = 'waiting' | 'active' | 'completed'
@@ -218,6 +220,9 @@ export interface Database {
           room_code: string
           host_name: string
           status: GroupRoundDbStatus
+          course_name: string | null
+          hole_count: number | null
+          pars: number[] | null
           created_at: string
           updated_at: string
         }
@@ -226,11 +231,17 @@ export interface Database {
           room_code: string
           host_name: string
           status?: GroupRoundDbStatus
+          course_name?: string | null
+          hole_count?: number | null
+          pars?: number[] | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           status?: GroupRoundDbStatus
+          course_name?: string | null
+          hole_count?: number | null
+          pars?: number[] | null
           updated_at?: string
         }
         Relationships: []
@@ -266,17 +277,20 @@ export interface Database {
           p_hole_count: number
           p_pars: number[]
         }
-        Returns: undefined
+        Returns: Json
       }
       join_group_round: {
         Args: {
           p_room_code: string
           p_player_name: string
         }
-        Returns: {
-          group_round_id: string
-          player_id: string
+        Returns: Json
+      }
+      get_group_round_lobby: {
+        Args: {
+          p_room_code: string
         }
+        Returns: Json
       }
     }
     Enums: {
