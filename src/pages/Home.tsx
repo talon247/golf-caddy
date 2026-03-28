@@ -1,5 +1,78 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
+import { useHandicapEstimate } from '../hooks/useHandicapEstimate'
+
+const DISCLAIMER_KEY = 'gc-handicap-disclaimer-dismissed'
+
+function HandicapWidget() {
+  const { result, differentials } = useHandicapEstimate()
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DISCLAIMER_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
+
+  useEffect(() => {
+    if (result.estimate !== null && !dismissed) {
+      setShowDisclaimer(true)
+    }
+  }, [result.estimate, dismissed])
+
+  function dismiss() {
+    try {
+      localStorage.setItem(DISCLAIMER_KEY, 'true')
+    } catch { /* ignore */ }
+    setDismissed(true)
+    setShowDisclaimer(false)
+  }
+
+  return (
+    <Link
+      to="/handicap"
+      className="block bg-white border-2 border-forest/20 rounded-2xl p-4 shadow-sm touch-target"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-warm-gray mb-1">
+            Handicap Estimate
+          </div>
+          {result.estimate !== null ? (
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-forest">{result.estimate.toFixed(1)}</span>
+              <span className="text-warm-gray text-xs">{result.roundsUsed} of {result.totalRounds} rounds</span>
+            </div>
+          ) : (
+            <div className="text-warm-gray text-sm">
+              {differentials.length === 0
+                ? 'Log 3+ rounds with course info to see your estimate'
+                : `${3 - differentials.length} more round${3 - differentials.length === 1 ? '' : 's'} needed`}
+            </div>
+          )}
+        </div>
+        <div className="text-forest opacity-40 text-xl">›</div>
+      </div>
+
+      {showDisclaimer && (
+        <div
+          className="mt-3 pt-3 border-t border-forest/10 text-xs text-warm-gray"
+          onClick={e => e.preventDefault()}
+        >
+          <p>This is an unofficial estimate based on the WHS formula. Not affiliated with USGA or R&amp;A.</p>
+          <button
+            onClick={dismiss}
+            className="mt-1 text-forest font-semibold underline text-xs"
+          >
+            Got it
+          </button>
+        </div>
+      )}
+    </Link>
+  )
+}
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -76,6 +149,9 @@ export default function Home() {
           </Link>
         </div>
       )}
+
+      {/* Handicap estimate widget */}
+      <HandicapWidget />
 
       {/* Past rounds */}
       {pastRounds.length > 0 && (

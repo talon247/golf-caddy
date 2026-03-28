@@ -10,6 +10,7 @@ import Summary from './pages/Summary'
 import Bag from './pages/Bag'
 import Courses from './pages/Courses'
 import GroupRoundHost from './pages/GroupRoundHost'
+import HandicapHistory from './pages/HandicapHistory'
 
 function Header() {
   return (
@@ -33,6 +34,14 @@ function Header() {
         >
           Bag
         </NavLink>
+        <NavLink
+          to="/handicap"
+          className={({ isActive }) =>
+            `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
+          }
+        >
+          HCP
+        </NavLink>
       </nav>
     </header>
   )
@@ -55,6 +64,7 @@ function App() {
             <Route path="/bag" element={<Bag />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/group-round/host" element={<GroupRoundHost />} />
+            <Route path="/handicap" element={<HandicapHistory />} />
           </Routes>
         </div>
       </BrowserRouter>

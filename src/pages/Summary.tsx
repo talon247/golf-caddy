@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
+import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -64,6 +65,19 @@ export default function Summary() {
   const gir = calcGIR(round.holes, putterIds)
   const fairways = calcFairwaysHit(round.holes)
   const hasStats = puttsAvg !== null || gir !== null || fairways !== null
+
+  // Handicap data
+  const { result: handicapResult, differentials } = useHandicapEstimate()
+  const thisRoundDifferential = computeRoundDifferential(round, putterIds)
+  // Previous estimate: compute from all rounds except this one
+  const prevEstimate = (() => {
+    const others = differentials.filter(d => d.roundId !== round.id)
+    if (others.length < 3) return null
+    // approximate: use current estimate if this round is not in differentials
+    const isInHistory = differentials.some(d => d.roundId === round.id)
+    if (!isInHistory) return handicapResult.estimate
+    return null // can't easily compute prior without re-running engine; skip delta
+  })()
 
   function handleDelete() {
     deleteRound(round!.id)
@@ -141,6 +155,40 @@ export default function Summary() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Handicap estimate */}
+      {(thisRoundDifferential !== null || handicapResult.estimate !== null) && round.completedAt && (
+        <div>
+          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-2">
+            Handicap Estimate
+          </h2>
+          <div className="bg-white rounded-xl border border-cream-dark p-4 flex items-center justify-between gap-4">
+            {thisRoundDifferential !== null && (
+              <div className="text-center">
+                <div className="text-xl font-black text-forest">{thisRoundDifferential.toFixed(1)}</div>
+                <div className="text-warm-gray text-xs mt-0.5">This round's differential</div>
+              </div>
+            )}
+            {handicapResult.estimate !== null && (
+              <div className="text-center">
+                <div className="text-xl font-black text-forest">{handicapResult.estimate.toFixed(1)}</div>
+                <div className="text-warm-gray text-xs mt-0.5">Current estimate</div>
+                {prevEstimate !== null && prevEstimate !== handicapResult.estimate && (
+                  <div className={`text-xs font-semibold mt-0.5 ${handicapResult.estimate < prevEstimate ? 'text-forest-mid' : 'text-orange-600'}`}>
+                    {handicapResult.estimate < prevEstimate ? '▼' : '▲'} {Math.abs(handicapResult.estimate - prevEstimate).toFixed(1)}
+                  </div>
+                )}
+              </div>
+            )}
+            <Link to="/handicap" className="text-forest text-xs underline whitespace-nowrap">
+              Full history →
+            </Link>
+          </div>
+          <p className="text-xs text-warm-gray mt-1 px-1">
+            Unofficial WHS estimate. Not affiliated with USGA or R&amp;A.
+          </p>
         </div>
       )}
 
