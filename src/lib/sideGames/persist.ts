@@ -4,6 +4,7 @@
 import { supabase } from '../supabase'
 import { useToastStore } from '../../store/toastStore'
 import type { NetAmount } from './settlement'
+import type { Json } from '../database.types'
 
 export type SideGameResultGameType =
   | 'skins'
@@ -45,11 +46,10 @@ export async function persistSideGameResults(
     amount_owed: r.amountOwed,
     // int4range format expected by PostgREST: "[lower,upper]"
     hole_range: r.holeRange ? `[${r.holeRange.lower},${r.holeRange.upper}]` : null,
-    metadata: r.metadata ?? null,
+    metadata: (r.metadata as Json) ?? null,
   }))
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from('side_game_results').insert(rows)
+  const { error } = await supabase.from('side_game_results').insert(rows)
   if (error) {
     useToastStore.getState().addToast('Could not save game results — they will still show in the round summary.')
   }
@@ -88,8 +88,7 @@ export async function persistSettlementHistory(
 
   if (rows.length === 0) return
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('settlement_history')
     .upsert(rows, { onConflict: 'round_id,from_user_id,to_user_id' })
 

@@ -369,6 +369,75 @@ export interface Database {
         }
         Relationships: []
       }
+      side_game_results: {
+        Row: {
+          id: string
+          group_round_id: string
+          game_type: string
+          winner_player_id: string | null
+          loser_player_id: string | null
+          amount_owed: number
+          hole_range: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          group_round_id: string
+          game_type: string
+          winner_player_id?: string | null
+          loser_player_id?: string | null
+          amount_owed: number
+          hole_range?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          game_type?: string
+          winner_player_id?: string | null
+          loser_player_id?: string | null
+          amount_owed?: number
+          hole_range?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'side_game_results_group_round_id_fkey'
+            columns: ['group_round_id']
+            referencedRelation: 'group_rounds'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      settlement_history: {
+        Row: {
+          id: string
+          round_id: string
+          from_user_id: string
+          to_user_id: string
+          net_amount: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          round_id: string
+          from_user_id: string
+          to_user_id: string
+          net_amount: number
+          created_at?: string
+        }
+        Update: {
+          net_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'settlement_history_round_id_fkey'
+            columns: ['round_id']
+            referencedRelation: 'rounds'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
