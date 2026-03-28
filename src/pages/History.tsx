@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { fetchRounds } from '../lib/sync'
+import { fetchRounds, syncRoundToSupabase } from '../lib/sync'
+import { addToQueue } from '../lib/syncQueue'
 import { SyncIndicator } from '../components/SyncIndicator'
 import type { Round } from '../types'
 
@@ -36,6 +37,7 @@ export default function History() {
   const syncStatus = useAppStore(s => s.syncStatus)
   const markRoundPending = useAppStore(s => s.markRoundPending)
   const markRoundSynced = useAppStore(s => s.markRoundSynced)
+  const markRoundError = useAppStore(s => s.markRoundError)
 
 
   const navigate = useNavigate()
@@ -130,19 +132,26 @@ export default function History() {
   }
 
   function handleRowTap(round: Round) {
-    console.log('[History] tapped round:', round.id)
     navigate(`/summary/${round.id}`)
   }
 
-  function handleRetry(roundId: string) {
-    console.log('[History] retry sync for round:', roundId)
+  async function handleRetry(roundId: string) {
+    if (!userId) return
+    const round = mergedRounds.find(r => r.id === roundId)
+    if (!round) return
     markRoundPending(roundId)
-    // The actual sync trigger would be handled by the sync layer
-    // Optimistically mark, real retry logic TBD by SE1
-    setTimeout(() => {
-      // Stub: in real impl, call syncRoundToSupabase then markRoundSynced/markRoundError
-      markRoundSynced(roundId)
-    }, 1500)
+    try {
+      const result = await syncRoundToSupabase(round, userId, 'completed')
+      if (result.success) {
+        markRoundSynced(roundId)
+      } else {
+        markRoundError(roundId)
+        addToQueue(roundId)
+      }
+    } catch {
+      markRoundError(roundId)
+      addToQueue(roundId)
+    }
   }
 
   const filterBtnClass = (active: boolean) =>
