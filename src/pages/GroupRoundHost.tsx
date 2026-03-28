@@ -18,6 +18,7 @@ export default function GroupRoundHost() {
   const [copied, setCopied] = useState(false)
   const [groupRoundId, setGroupRoundId] = useState<string | null>(null)
   const [phase, setPhase] = useState<'lobby' | 'setup'>('lobby')
+  const [hostName, setHostName] = useState('')
   const [courseName, setCourseName] = useState('')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
@@ -40,7 +41,7 @@ export default function GroupRoundHost() {
       while (attempts < 5) {
         const { data, error } = await supabase
           .from('group_rounds')
-          .insert({ room_code: code, host_name: 'Host' })
+          .insert({ room_code: code, host_name: hostName.trim() || 'Host' })
           .select('id')
           .single()
 
@@ -89,6 +90,7 @@ export default function GroupRoundHost() {
       if (groupRoundId) {
         await supabase.rpc('start_group_round', {
           p_group_round_id: groupRoundId,
+          p_host_name: hostName.trim() || 'Host',
           p_course_name: courseName.trim() || 'Group Round',
           p_hole_count: holeCount,
           p_pars: pars.slice(0, holeCount),
@@ -100,7 +102,7 @@ export default function GroupRoundHost() {
         id,
         courseName: courseName.trim() || 'Group Round',
         tees: '',
-        playerName: 'Host',
+        playerName: hostName.trim() || 'Host',
         holeCount,
         startedAt: Date.now(),
         holes: Array.from({ length: holeCount }, (_, i) => ({
@@ -178,6 +180,21 @@ export default function GroupRoundHost() {
         </div>
 
         <div className="flex flex-col gap-4">
+          {/* Your Name */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700" htmlFor="host-name">
+              Your Name
+            </label>
+            <input
+              id="host-name"
+              type="text"
+              value={hostName}
+              onChange={(e) => setHostName(e.target.value)}
+              placeholder="e.g. Brian"
+              className="w-full py-3 px-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27]"
+            />
+          </div>
+
           {/* Course Name */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700" htmlFor="course-name">
