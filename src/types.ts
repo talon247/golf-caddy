@@ -52,6 +52,21 @@ export interface AppState {
   activeRoundId?: string
 }
 
+// ── Auth / Sync ───────────────────────────────────────────────────────────
+
+export interface UserProfile {
+  id: string
+  displayName: string
+  homeCourse?: string
+  handicapIndex?: number | null
+}
+
+export interface SyncQueueItem {
+  roundId: string
+  queuedAt: number
+  retries: number
+}
+
 // ── Multiplayer / Group Round ──────────────────────────────────────────────
 
 /** Combined status covering both host flow and DB states */

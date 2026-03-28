@@ -2,8 +2,8 @@ export { useCourseStore } from './courseStore'
 export { useGroupRoundStore } from './groupRoundStore'
 
 import { create } from 'zustand'
-import type { Club, Round, Shot } from '../types'
-import { loadState, saveState } from '../storage'
+import type { Club, Round, Shot, UserProfile, SyncQueueItem } from '../types'
+import { loadState, saveState, type PersistedState } from '../storage'
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 
@@ -11,6 +11,27 @@ interface StoreState {
   clubBag: Club[]
   rounds: Round[]
   activeRoundId: string | undefined
+
+  // Auth state (NOT persisted)
+  userId: string | null
+  profile: UserProfile | null
+  isAuthenticated: boolean // derived: userId !== null
+
+  // Sync state
+  syncStatus: Record<string, 'local' | 'synced' | 'pending' | 'error'>
+  syncQueue: SyncQueueItem[]
+
+  // Auth actions
+  setUserId: (userId: string | null) => void
+  setProfile: (profile: UserProfile | null) => void
+  setAuthState: (userId: string | null, profile: UserProfile | null) => void
+
+  // Sync actions
+  markRoundSynced: (roundId: string) => void
+  markRoundPending: (roundId: string) => void
+  markRoundError: (roundId: string) => void
+  queueSync: (item: SyncQueueItem) => void
+  dequeueSync: (roundId: string) => void
 
   // Club bag actions
   addClub: (name: string) => string
@@ -37,15 +58,73 @@ interface StoreState {
 }
 
 const initial = loadState()
+const initialSyncStatus: Record<string, 'local' | 'synced' | 'pending' | 'error'> =
+  initial.syncStatus ?? {}
 
-function persist(state: Pick<StoreState, 'clubBag' | 'rounds' | 'activeRoundId'>) {
-  saveState({ clubBag: state.clubBag, rounds: state.rounds, activeRoundId: state.activeRoundId })
+function persist(state: Pick<StoreState, 'clubBag' | 'rounds' | 'activeRoundId' | 'syncStatus'>): void {
+  const persistedState: PersistedState = {
+    clubBag: state.clubBag,
+    rounds: state.rounds,
+    activeRoundId: state.activeRoundId,
+    syncStatus: state.syncStatus,
+  }
+  saveState(persistedState)
 }
 
 export const useAppStore = create<StoreState>((set, get) => ({
   clubBag: initial.clubBag,
   rounds: initial.rounds,
   activeRoundId: initial.activeRoundId,
+
+  // Auth (not persisted — start unauthenticated)
+  userId: null,
+  profile: null,
+  isAuthenticated: false,
+
+  // Sync (persisted)
+  syncStatus: initialSyncStatus,
+  syncQueue: [],
+
+  // Auth actions
+  setUserId: (userId) => {
+    set({ userId, isAuthenticated: userId !== null })
+  },
+
+  setProfile: (profile) => {
+    set({ profile })
+  },
+
+  setAuthState: (userId, profile) => {
+    set({ userId, profile, isAuthenticated: userId !== null })
+  },
+
+  // Sync actions
+  markRoundSynced: (roundId) => {
+    const syncStatus = { ...get().syncStatus, [roundId]: 'synced' as const }
+    set({ syncStatus })
+    persist({ ...get(), syncStatus })
+  },
+
+  markRoundPending: (roundId) => {
+    const syncStatus = { ...get().syncStatus, [roundId]: 'pending' as const }
+    set({ syncStatus })
+    persist({ ...get(), syncStatus })
+  },
+
+  markRoundError: (roundId) => {
+    const syncStatus = { ...get().syncStatus, [roundId]: 'error' as const }
+    set({ syncStatus })
+    persist({ ...get(), syncStatus })
+  },
+
+  queueSync: (item) => {
+    const existing = get().syncQueue.filter(i => i.roundId !== item.roundId)
+    set({ syncQueue: [...existing, item] })
+  },
+
+  dequeueSync: (roundId) => {
+    set({ syncQueue: get().syncQueue.filter(i => i.roundId !== roundId) })
+  },
 
   addClub: (name) => {
     const id = crypto.randomUUID()

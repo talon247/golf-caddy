@@ -1,5 +1,10 @@
 import type { AppState, Club, Course, Hole } from './types'
 
+// Persisted state extends AppState with sync data
+export interface PersistedState extends AppState {
+  syncStatus?: Record<string, 'local' | 'synced' | 'pending' | 'error'>
+}
+
 // ── Group Round Recovery ───────────────────────────────────────────────────
 
 const GRP_RECOVERY_KEY = 'golf-caddy-group-round'
@@ -66,22 +71,23 @@ function defaultState(): AppState {
   }
 }
 
-export function loadState(): AppState {
+export function loadState(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return defaultState()
-    const parsed = JSON.parse(raw) as Partial<AppState>
+    const parsed = JSON.parse(raw) as Partial<PersistedState>
     return {
       clubBag: Array.isArray(parsed.clubBag) ? parsed.clubBag : DEFAULT_CLUBS.map(c => ({ ...c })),
       rounds: Array.isArray(parsed.rounds) ? parsed.rounds : [],
       activeRoundId: typeof parsed.activeRoundId === 'string' ? parsed.activeRoundId : undefined,
+      syncStatus: parsed.syncStatus && typeof parsed.syncStatus === 'object' ? parsed.syncStatus : {},
     }
   } catch {
     return defaultState()
   }
 }
 
-export function saveState(state: AppState): void {
+export function saveState(state: PersistedState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   } catch {

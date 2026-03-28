@@ -224,6 +224,12 @@ export default function Home() {
             + New Round
           </Link>
         )}
+        <Link
+          to="/profile"
+          className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
+        >
+          👤 Profile
+        </Link>
       </div>
     </main>
   )
