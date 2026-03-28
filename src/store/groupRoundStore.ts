@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GroupRound, GroupRoundPlayer, GroupRoundStatus } from '../types'
+import type { GroupRound, GroupRoundPlayer, GroupRoundStatus, SideGameConfig } from '../types'
 
 interface GroupRoundStore {
   groupRound: GroupRound | null
@@ -9,8 +9,10 @@ interface GroupRoundStore {
   // Join flow state
   currentPlayer: GroupRoundPlayer | null
   players: GroupRoundPlayer[]
+  sideGameConfig: SideGameConfig | null
 
   setGroupRound: (round: GroupRound) => void
+  setSideGameConfig: (config: SideGameConfig | null) => void
   setStatus: (status: GroupRoundStatus) => void
   setError: (error: string | null) => void
   // Host flow: add/remove single player from presence; setPlayers syncs all at once
@@ -30,8 +32,11 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
   error: null,
   currentPlayer: null,
   players: [],
+  sideGameConfig: null,
 
   setGroupRound: (round) => set({ groupRound: round, status: 'waiting', error: null }),
+
+  setSideGameConfig: (config) => set({ sideGameConfig: config }),
 
   setStatus: (status) => set({ status }),
 
