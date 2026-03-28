@@ -217,3 +217,18 @@ export interface JoinGroupRoundError {
   error: JoinError
   message: string
 }
+
+// ── Side Games ────────────────────────────────────────────────────────────────
+
+export type SideGameType = 'skins' | 'nassau' | 'press' | 'stableford'
+
+export interface SideGameConfig {
+  sideGamesEnabled: boolean
+  gameTypes: SideGameType[]
+  stakePerSkin: number | null
+  nassauStakeFront: number | null
+  nassauStakeBack: number | null
+  nassauStakeOverall: number | null
+  pressEnabled: boolean
+  pressTriggerThreshold: number
+}

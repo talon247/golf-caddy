@@ -5,9 +5,12 @@ import { useGroupRoundStore } from '../store/groupRoundStore'
 import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useAppStore } from '../store'
 import ParGridEditor from '../components/ParGridEditor'
+import SideGameConfigStep from '../components/group-round/SideGameConfig'
 import { saveGroupRoundRecovery } from '../storage'
 import { searchCourses, getCourseDetails } from '../lib/handicap/courseApi'
+import { saveSideGameConfig } from '../lib/sideGames/config'
 import type { GolfApiCourse, TeeSet } from '../lib/handicap/courseApi'
+import type { SideGameConfig } from '../types'
 
 function generateRoomCode(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
@@ -19,7 +22,7 @@ export default function GroupRoundHost() {
   const [roomCode, setRoomCode] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [groupRoundId, setGroupRoundId] = useState<string | null>(null)
-  const [phase, setPhase] = useState<'lobby' | 'setup'>('lobby')
+  const [phase, setPhase] = useState<'lobby' | 'setup' | 'side_games'>('lobby')
   const [hostName, setHostName] = useState('')
   const [courseName, setCourseName] = useState('')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
@@ -39,8 +42,10 @@ export default function GroupRoundHost() {
   const createdRef = useRef(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
+  const setSideGameConfig = useGroupRoundStore((s) => s.setSideGameConfig)
   const resetLeaderboard = useLeaderboardStore((s) => s.reset)
   const addRound = useAppStore((s) => s.addRound)
   const setActiveRoundId = useAppStore((s) => s.setActiveRoundId)
@@ -66,6 +71,9 @@ export default function GroupRoundHost() {
           setGroupRoundId(id)
           if (id) {
             saveGroupRoundRecovery({ groupRoundId: id, roomCode: code })
+            // Set up realtime channel so host can broadcast side_game_config later
+            channelRef.current = supabase.channel(`round:${id}`)
+            channelRef.current.subscribe()
           }
           setState('ready')
           return
@@ -95,6 +103,12 @@ export default function GroupRoundHost() {
       setRoomCode(fallbackCode)
       setState('ready')
     })
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+      }
+    }
   }, [])
 
   // Debounced course search
@@ -162,7 +176,8 @@ export default function GroupRoundHost() {
 
   const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
 
-  const handleStartRound = useCallback(async () => {
+  // ── Start the round (called from SideGameConfigStep) ────────────────────
+  const handleStartRound = useCallback(async (sideGameCfg: SideGameConfig) => {
     setSubmitting(true)
     try {
       if (groupRoundId) {
@@ -174,7 +189,29 @@ export default function GroupRoundHost() {
           p_course_rating: courseRating ?? undefined,
           p_slope_rating: slopeRating ?? undefined,
         })
+
+        // Save side game config to Supabase (non-fatal on error)
+        try {
+          await saveSideGameConfig(groupRoundId, sideGameCfg)
+        } catch {
+          // Config save failed — round still starts
+        }
+
+        // Broadcast config to all players so they can initialize their side game state
+        if (channelRef.current) {
+          try {
+            await channelRef.current.send({
+              type: 'broadcast',
+              event: 'side_game_config',
+              payload: sideGameCfg,
+            })
+          } catch {
+            // Non-fatal — players can fetch config from DB on join
+          }
+        }
       }
+
+      setSideGameConfig(sideGameCfg)
 
       const id = crypto.randomUUID()
       addRound({
@@ -209,7 +246,7 @@ export default function GroupRoundHost() {
     } finally {
       setSubmitting(false)
     }
-  }, [groupRoundId, courseName, holeCount, pars, courseRating, slopeRating, addRound, setActiveRoundId, setGroupRound, roomCode, navigate, hostName, resetLeaderboard])
+  }, [groupRoundId, courseName, holeCount, pars, courseRating, slopeRating, addRound, setActiveRoundId, setGroupRound, setSideGameConfig, roomCode, navigate, hostName, resetLeaderboard])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -243,6 +280,16 @@ export default function GroupRoundHost() {
           Back to Home
         </button>
       </main>
+    )
+  }
+
+  if (phase === 'side_games') {
+    return (
+      <SideGameConfigStep
+        onBack={() => setPhase('setup')}
+        onStartRound={handleStartRound}
+        submitting={submitting}
+      />
     )
   }
 
@@ -411,11 +458,10 @@ export default function GroupRoundHost() {
         <div className="mt-auto">
           <button
             type="button"
-            onClick={handleStartRound}
-            disabled={submitting}
-            className="w-full py-3 rounded-xl bg-[#2d5a27] text-white font-semibold touch-target disabled:opacity-60"
+            onClick={() => setPhase('side_games')}
+            className="w-full py-4 rounded-xl bg-[#2d5a27] text-white text-lg font-bold min-h-[56px] active:scale-95 transition-transform"
           >
-            {submitting ? 'Starting…' : 'Start Round'}
+            Side Games →
           </button>
         </div>
       </main>

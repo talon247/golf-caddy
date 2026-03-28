@@ -241,6 +241,7 @@ export interface Database {
           pars: number[] | null
           course_rating: number | null
           slope_rating: number | null
+          side_games_enabled: boolean
           expires_at: string
           created_at: string
           updated_at: string
@@ -255,6 +256,7 @@ export interface Database {
           pars?: number[] | null
           course_rating?: number | null
           slope_rating?: number | null
+          side_games_enabled?: boolean
           expires_at?: string
           created_at?: string
           updated_at?: string
@@ -266,9 +268,53 @@ export interface Database {
           pars?: number[] | null
           course_rating?: number | null
           slope_rating?: number | null
+          side_games_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
+      }
+      side_game_configs: {
+        Row: {
+          id: string
+          group_round_id: string
+          game_types: string[]
+          stake_per_skin: number | null
+          nassau_stake_front: number | null
+          nassau_stake_back: number | null
+          nassau_stake_overall: number | null
+          press_enabled: boolean
+          press_trigger_threshold: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          group_round_id: string
+          game_types?: string[]
+          stake_per_skin?: number | null
+          nassau_stake_front?: number | null
+          nassau_stake_back?: number | null
+          nassau_stake_overall?: number | null
+          press_enabled?: boolean
+          press_trigger_threshold?: number
+          created_at?: string
+        }
+        Update: {
+          game_types?: string[]
+          stake_per_skin?: number | null
+          nassau_stake_front?: number | null
+          nassau_stake_back?: number | null
+          nassau_stake_overall?: number | null
+          press_enabled?: boolean
+          press_trigger_threshold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'side_game_configs_group_round_id_fkey'
+            columns: ['group_round_id']
+            referencedRelation: 'group_rounds'
+            referencedColumns: ['id']
+          }
+        ]
       }
       group_round_players: {
         Row: {
