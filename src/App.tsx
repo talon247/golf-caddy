@@ -23,6 +23,7 @@ import History from './pages/History'
 import Analytics from './pages/Analytics'
 import Friends from './pages/Friends'
 import SettlementHistory from './pages/SettlementHistory'
+import { RouteErrorBoundary } from './components/RouteErrorBoundary'
 import { Toaster } from './components/Toaster'
 
 function AppInner() {
@@ -41,22 +42,22 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/setup" element={<Setup />} />
-            <Route path="/round" element={<Round />} />
-            <Route path="/round-a" element={<RoundUndoA />} />
-            <Route path="/round-b" element={<RoundUndoB />} />
-            <Route path="/round-c" element={<RoundUndoC />} />
-            <Route path="/summary/:id" element={<Summary />} />
+            <Route path="/round" element={<RouteErrorBoundary routeName="Round"><Round /></RouteErrorBoundary>} />
+            <Route path="/round-a" element={<RouteErrorBoundary routeName="Round"><RoundUndoA /></RouteErrorBoundary>} />
+            <Route path="/round-b" element={<RouteErrorBoundary routeName="Round"><RoundUndoB /></RouteErrorBoundary>} />
+            <Route path="/round-c" element={<RouteErrorBoundary routeName="Round"><RoundUndoC /></RouteErrorBoundary>} />
+            <Route path="/summary/:id" element={<RouteErrorBoundary routeName="Summary"><Summary /></RouteErrorBoundary>} />
             <Route path="/bag" element={<Bag />} />
             <Route path="/courses" element={<Courses />} />
-            <Route path="/group-round" element={<GroupRound />} />
-            <Route path="/group-round/host" element={<GroupRoundHost />} />
-            <Route path="/group-round/join" element={<GroupRoundJoin />} />
-            <Route path="/group-round/join/:code" element={<GroupRoundJoin />} />
+            <Route path="/group-round" element={<RouteErrorBoundary routeName="Group Round"><GroupRound /></RouteErrorBoundary>} />
+            <Route path="/group-round/host" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundHost /></RouteErrorBoundary>} />
+            <Route path="/group-round/join" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundJoin /></RouteErrorBoundary>} />
+            <Route path="/group-round/join/:code" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundJoin /></RouteErrorBoundary>} />
             <Route path="/handicap" element={<HandicapHistory />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/history" element={<History />} />
-            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/analytics" element={<RouteErrorBoundary routeName="Analytics"><Analytics /></RouteErrorBoundary>} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/settlement-history" element={<SettlementHistory />} />
           </Routes>

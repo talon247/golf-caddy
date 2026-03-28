@@ -1,5 +1,14 @@
 import type { Hole, PlayerScore, ScoreDelta } from '../types'
 
+/** Total strokes for a hole: non-putter club taps + putts + penalties */
+export function calcTotalStrokes(
+  hole: Pick<Hole, 'shots' | 'putts'> & { penalties?: number },
+  putterIds: Set<string>,
+): number {
+  const clubStrokes = hole.shots.filter(s => !putterIds.has(s.clubId)).length
+  return clubStrokes + (hole.putts ?? 0) + (hole.penalties ?? 0)
+}
+
 /** Average putts per hole, based only on holes that have putts data */
 export function calcPuttsAvg(holes: Hole[]): number | null {
   const tracked = holes.filter(h => h.putts !== undefined)
