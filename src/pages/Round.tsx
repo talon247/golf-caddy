@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { XCircle } from 'lucide-react'
+import { XCircle, RotateCcw } from 'lucide-react'
 import { useAppStore } from '../store'
 import { useGroupRoundStore } from '../store/groupRoundStore'
 import { useLeaderboardStore } from '../store/leaderboardStore'
@@ -42,7 +42,7 @@ function scoreColor(strokes: number, par: number): string {
 
 export default function Round() {
   const navigate = useNavigate()
-  const { rounds, activeRoundId, addShot, removeShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
+  const { rounds, activeRoundId, addShot, removeShot, removeLastShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
   const bag = useAppStore(s => s.clubBag).sort((a, b) => a.order - b.order)
 
   const round = rounds.find(r => r.id === activeRoundId)
@@ -176,6 +176,16 @@ export default function Round() {
     if (currentHole > 1) setCurrentHole(h => h - 1)
   }
 
+  function handleUndo() {
+    if (hole.shots.length > 0) {
+      removeLastShot(round!.id, currentHole)
+      vibrate([20, 20])
+    } else if ((hole.putts ?? 0) > 0) {
+      setPutts(round!.id, currentHole, (hole.putts ?? 0) - 1)
+      vibrate([20, 20])
+    }
+  }
+
   function handleFinish() {
     completeRound(round!.id)
     navigate(`/summary/${round!.id}`)
@@ -227,7 +237,7 @@ export default function Round() {
       {activeTab === 'leaderboard' && <LiveLeaderboard />}
 
       {activeTab === 'round' && (
-        <div className="flex flex-col flex-1 p-4 gap-4">
+        <div className={`flex flex-col flex-1 p-4 gap-4${strokes > 0 ? ' pb-28' : ''}`}>
           {/* Offline banner — only shown during group rounds */}
           {groupRound && isOffline && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-amber-800 text-sm font-medium">
@@ -295,13 +305,22 @@ export default function Round() {
 
           {/* Stroke counter */}
           <div className="relative bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-5 h-36 flex flex-col items-center justify-center gap-1 shadow-sm">
+            {strokes > 0 && (
+              <button
+                onClick={handleUndo}
+                aria-label="Undo last shot"
+                className="absolute top-1 right-1 min-w-[44px] min-h-[44px] flex items-center justify-center gap-1 text-warm-gray hover:text-forest active:scale-95 transition-all px-2"
+              >
+                <RotateCcw size={16} />
+                <span className="text-xs font-medium">Undo</span>
+              </button>
+            )}
             <div className={`text-6xl font-black leading-none h-16 flex items-center justify-center ${strokes > 0 ? 'text-[#2d5a27]' : 'text-gray-500'}`}>
               {strokes}
             </div>
             <div className={`text-lg font-semibold h-7 flex items-center justify-center text-center ${strokes > 0 ? scoreColor(strokes, hole.par) : 'text-gray-500'}`}>
               {strokes > 0 ? scoreName(strokes, hole.par) : 'Tap a club to start'}
             </div>
-
           </div>
 
           {/* Club quick-tap grid */}
@@ -380,25 +399,27 @@ export default function Round() {
             )}
           </div>
 
-          {/* Footer actions */}
+          {/* Footer actions — shown only when sticky bar is not active */}
           <div className="flex flex-col gap-2 mt-auto pt-2">
-            <div className="flex gap-3">
-              {currentHole === totalHoles ? (
-                <button
-                  onClick={handleFinish}
-                  className="flex-1 bg-gold text-white py-3 rounded-xl font-bold shadow touch-target"
-                >
-                  Finish Round
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className="flex-1 bg-forest text-cream py-3 rounded-xl font-semibold touch-target"
-                >
-                  Next Hole →
-                </button>
-              )}
-            </div>
+            {strokes === 0 && (
+              <div className="flex gap-3">
+                {currentHole === totalHoles ? (
+                  <button
+                    onClick={handleFinish}
+                    className="flex-1 bg-gold text-white py-3 rounded-xl font-bold shadow touch-target"
+                  >
+                    Finish Round
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNext}
+                    className="flex-1 bg-forest text-cream py-3 rounded-xl font-semibold touch-target"
+                  >
+                    Next Hole →
+                  </button>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setShowAbandonModal(true)}
@@ -408,6 +429,33 @@ export default function Round() {
               Abandon round
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Sticky action bar — visible when strokes > 0 on the Round tab */}
+      {activeTab === 'round' && strokes > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-cream-dark px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-lg z-50">
+          <div className="flex flex-col leading-tight flex-1">
+            <span className="text-xs text-warm-gray font-medium">Hole {currentHole}</span>
+            <span className={`text-base font-bold ${scoreColor(strokes, hole.par)}`}>
+              {scoreName(strokes, hole.par)} ({strokes})
+            </span>
+          </div>
+          {currentHole === totalHoles ? (
+            <button
+              onClick={handleFinish}
+              className="bg-gold text-white px-5 py-3 rounded-xl font-bold touch-target shadow"
+            >
+              Finish Round
+            </button>
+          ) : (
+            <button
+              onClick={handleNext}
+              className="bg-forest text-cream px-5 py-3 rounded-xl font-semibold touch-target"
+            >
+              Hole {currentHole + 1} →
+            </button>
+          )}
         </div>
       )}
 
