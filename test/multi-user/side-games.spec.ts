@@ -1,52 +1,53 @@
-import { test, expect } from '@playwright/test'
-import { createTestUser, deleteTestUser, type TestUser } from '../helpers/auth'
-import { cleanupTestData } from '../helpers/supabase'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
+import {
+  signUpTestUser,
+  signInTestUser,
+  cleanUpTestUser,
+  type TestUser,
+} from '../helpers/auth'
 
 test.describe('Side Games — Skins configured + live updates in both contexts', () => {
   let playerA: TestUser
   let playerB: TestUser
 
   test.beforeAll(async () => {
-    playerA = await createTestUser('skins-host')
-    playerB = await createTestUser('skins-guest')
+    playerA = await signUpTestUser()
+    playerB = await signUpTestUser()
   })
 
   test.afterAll(async () => {
-    await cleanupTestData([playerA.id, playerB.id])
-    await deleteTestUser(playerA.id)
-    await deleteTestUser(playerB.id)
+    await cleanUpTestUser(playerA)
+    await cleanUpTestUser(playerB)
   })
 
-  test('Skins side game visible and updating in both contexts', async ({ browser }) => {
-    const ctxA = await browser.newContext()
-    const ctxB = await browser.newContext()
-    const pageA = await ctxA.newPage()
-    const pageB = await ctxB.newPage()
+  test('Skins side game visible and updating in both contexts', async ({
+    browser,
+    baseURL,
+  }) => {
+    const appUrl = baseURL!
+    const ctxA: BrowserContext = await browser.newContext()
+    const ctxB: BrowserContext = await browser.newContext()
+    const pageA: Page = await ctxA.newPage()
+    const pageB: Page = await ctxB.newPage()
 
     // ── Sign in both players ───────────────────────────────────────────
-    await pageA.goto('/')
-    await pageA.getByRole('button', { name: /sign in/i }).click()
-    await pageA.getByPlaceholder(/email/i).fill(playerA.email)
-    await pageA.getByPlaceholder(/password/i).fill(playerA.password)
-    await pageA.getByRole('button', { name: /sign in/i }).click()
-    await expect(pageA.getByText(/golf caddy/i)).toBeVisible()
+    await signInTestUser(pageA, playerA, appUrl)
+    await signInTestUser(pageB, playerB, appUrl)
 
-    await pageB.goto('/')
-    await pageB.getByRole('button', { name: /sign in/i }).click()
-    await pageB.getByPlaceholder(/email/i).fill(playerB.email)
-    await pageB.getByPlaceholder(/password/i).fill(playerB.password)
-    await pageB.getByRole('button', { name: /sign in/i }).click()
+    await expect(pageA.getByText(/golf caddy/i)).toBeVisible()
     await expect(pageB.getByText(/golf caddy/i)).toBeVisible()
 
     // ── Player A: host group round ─────────────────────────────────────
     await pageA.getByRole('link', { name: /group round/i }).click()
     await pageA.getByRole('link', { name: /host/i }).click()
 
-    const roomCodeEl = pageA.locator('[class*="tracking-widest"]').filter({ hasText: /^\d{4}$/ })
+    const roomCodeEl = pageA
+      .locator('[class*="tracking-widest"]')
+      .filter({ hasText: /^\d{4}$/ })
     await expect(roomCodeEl).toBeVisible({ timeout: 10_000 })
     const roomCode = (await roomCodeEl.textContent())!.trim()
 
-    // ── Player B: join ─────────────────────────────────────────────────
+    // ── Player B: join via room code ───────────────────────────────────
     await pageB.getByRole('link', { name: /group round/i }).click()
     await pageB.getByRole('link', { name: /join/i }).click()
 
@@ -55,11 +56,11 @@ test.describe('Side Games — Skins configured + live updates in both contexts',
       await codeInputs.nth(i).fill(roomCode[i])
     }
     await pageB.getByRole('button', { name: /next|join|submit/i }).click()
-    await pageB.getByPlaceholder(/name/i).fill(playerB.displayName)
+    await pageB.getByPlaceholder(/name/i).fill('Skins Guest')
     await pageB.getByRole('button', { name: /join|next|submit/i }).click()
 
     // Wait for both in lobby
-    await expect(pageA.getByText(playerB.displayName)).toBeVisible({ timeout: 10_000 })
+    await expect(pageA.getByText('Skins Guest')).toBeVisible({ timeout: 10_000 })
 
     // ── Player A: setup course ─────────────────────────────────────────
     await pageA.getByRole('button', { name: /set up course|next|continue/i }).click()
@@ -69,31 +70,33 @@ test.describe('Side Games — Skins configured + live updates in both contexts',
       await courseInput.fill('Skins Test Course')
     }
 
-    // Advance to side games configuration phase
+    // Advance to side games configuration
     await pageA.getByRole('button', { name: /next|continue|side games/i }).click()
 
-    // ── Configure Skins side game ──────────────────────────────────────
-    // Enable Skins
-    const skinsToggle = pageA.getByText(/skins/i).locator('..').getByRole('switch', { name: /skins/i })
-      .or(pageA.getByLabel(/skins/i))
-      .or(pageA.locator('button, input[type="checkbox"]').filter({ hasText: /skins/i }))
-    await skinsToggle.first().click()
+    // ── Configure Skins ────────────────────────────────────────────────
+    // Enable Skins toggle (try multiple selector strategies)
+    const skinsToggle = pageA
+      .getByText(/skins/i)
+      .locator('..')
+      .locator('button, input[type="checkbox"], [role="switch"]')
+      .first()
+    await skinsToggle.click()
 
-    // Set stake per skin (if field is visible)
-    const stakeInput = pageA.getByPlaceholder(/stake|amount/i).or(pageA.getByLabel(/stake per skin/i))
+    // Set stake per skin if visible
+    const stakeInput = pageA
+      .getByPlaceholder(/stake|amount/i)
+      .or(pageA.getByLabel(/stake per skin/i))
     if (await stakeInput.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
       await stakeInput.first().fill('5')
     }
 
-    // ── Start the round with Skins enabled ─────────────────────────────
+    // ── Start the round ────────────────────────────────────────────────
     await pageA.getByRole('button', { name: /start round|begin/i }).click()
 
-    // Both should navigate to /round
     await expect(pageA).toHaveURL(/\/round/, { timeout: 15_000 })
     await expect(pageB).toHaveURL(/\/round/, { timeout: 15_000 })
 
     // ── Verify SideGamePanel visible on both contexts ──────────────────
-    // Switch to side games tab
     const sideGamesTabA = pageA.getByRole('tab', { name: /side ?games?/i })
     const sideGamesTabB = pageB.getByRole('tab', { name: /side ?games?/i })
 
@@ -103,7 +106,7 @@ test.describe('Side Games — Skins configured + live updates in both contexts',
     await sideGamesTabB.click()
     await expect(pageB.getByText(/skins/i)).toBeVisible()
 
-    // ── Player A: enter score on hole 1 (birdie = 3 on par 4) ──────────
+    // ── Player A: enter birdie on hole 1 (3 strokes on par 4) ──────────
     await pageA.getByRole('tab', { name: /round/i }).click()
     const addShotA = pageA.getByRole('button', { name: /\+|add shot/i }).first()
     for (let i = 0; i < 3; i++) {
@@ -111,7 +114,7 @@ test.describe('Side Games — Skins configured + live updates in both contexts',
     }
     await pageA.getByRole('button', { name: /next hole|→|>/i }).click()
 
-    // ── Player B: enter score on hole 1 (bogey = 5 on par 4) ──────────
+    // ── Player B: enter bogey on hole 1 (5 strokes on par 4) ──────────
     await pageB.getByRole('tab', { name: /round/i }).click()
     const addShotB = pageB.getByRole('button', { name: /\+|add shot/i }).first()
     for (let i = 0; i < 5; i++) {
@@ -119,19 +122,13 @@ test.describe('Side Games — Skins configured + live updates in both contexts',
     }
     await pageB.getByRole('button', { name: /next hole|→|>/i }).click()
 
-    // ── Verify Skins panel updates on both sides ───────────────────────
-    // Player A should have won the skin on hole 1
+    // ── Verify Skins panel updates ─────────────────────────────────────
     await sideGamesTabA.click()
-    await expect(
-      pageA.getByText(/skin|won/i)
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(pageA.getByText(/skin|won/i)).toBeVisible({ timeout: 10_000 })
 
     await sideGamesTabB.click()
-    await expect(
-      pageB.getByText(/skin|won/i)
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(pageB.getByText(/skin|won/i)).toBeVisible({ timeout: 10_000 })
 
-    // Cleanup
     await ctxA.close()
     await ctxB.close()
   })
