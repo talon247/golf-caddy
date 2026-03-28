@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { signOut } from '../lib/auth'
-import { fetchProfile, syncClubs, syncRoundToSupabase, markRoundSynced } from '../lib/sync'
+import { fetchProfile, syncClubs, syncRoundToSupabase } from '../lib/sync'
 import { AuthModal } from '../components/AuthModal'
 import type { Round } from '../types'
 
@@ -96,7 +96,7 @@ export default function Profile() {
       const migrationDeclined = localStorage.getItem('migration_declined') === 'true'
       if (!migrationDeclined) {
         const unsyncedCount = rounds.filter(
-          r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+          r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
         ).length
         if (unsyncedCount > 0) {
           setShowSyncBanner(true)
@@ -111,13 +111,12 @@ export default function Profile() {
     if (!userId) return
     setSyncingLocal(true)
     const unsyncedRounds = rounds.filter(
-      r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+      r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
     )
     for (const round of unsyncedRounds) {
       try {
         await syncRoundToSupabase(round, userId)
         storeMarkRoundSynced(round.id)
-        await markRoundSynced(round.id, userId)
       } catch (err) {
         console.error('[Profile] sync round failed:', round.id, err)
       }
@@ -200,7 +199,7 @@ export default function Profile() {
   const homeCourse = profile?.homeCourse ?? null
 
   const unsyncedCount = rounds.filter(
-    r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+    r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
   ).length
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../store'
 import { signIn, signUp, resetPassword } from '../lib/auth'
-import { syncRoundToSupabase, markRoundSynced } from '../lib/sync'
+import { syncRoundToSupabase } from '../lib/sync'
 import { MigrationPrompt } from './MigrationPrompt'
 
 type Tab = 'signin' | 'signup'
@@ -176,7 +176,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
         setAuthState(user.id, null)
         // Check for unsynced local rounds
         const unsyncedRounds = rounds.filter(
-          r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+          r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
         )
         if (unsyncedRounds.length > 0) {
           setMigrationUserId(user.id)
@@ -204,13 +204,12 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
     setShowMigration(false)
     // Batch sync all unsynced rounds
     const unsyncedRounds = rounds.filter(
-      r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+      r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
     )
     for (const round of unsyncedRounds) {
       try {
         await syncRoundToSupabase(round, migrationUserId)
         storeMarkRoundSynced(round.id)
-        await markRoundSynced(round.id, migrationUserId)
       } catch (err) {
         console.error('[AuthModal] batch sync failed for round', round.id, err)
       }
