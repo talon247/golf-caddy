@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
+import { calcTotalStrokes, calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
 import DiscordInviteBanner from '../components/DiscordInviteBanner'
@@ -53,7 +53,7 @@ export default function Summary() {
   })
 
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((s, h) => s + calcTotalStrokes(h, putterIds), 0)
   const totalPar = round.holes.slice(0, round.holeCount).reduce((s, h) => s + h.par, 0)
   const playedPar = playedHoles.reduce((s, h) => s + h.par, 0)
   const diff = totalStrokes - playedPar
@@ -61,7 +61,7 @@ export default function Summary() {
   // Score breakdown
   const counts = { ace: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, worse: 0 }
   for (const h of playedHoles) {
-    const d = (h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)) - h.par
+    const d = (calcTotalStrokes(h, putterIds)) - h.par
     if (h.shots.length === 1) counts.ace++
     else if (d <= -2) counts.eagle++
     else if (d === -1) counts.birdie++
@@ -98,7 +98,7 @@ export default function Summary() {
   const parTypeScoring = (() => {
     const groups = new Map<number, { totalStrokes: number; count: number; totalPar: number }>()
     for (const h of playedHoles) {
-      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const strokes = calcTotalStrokes(h, putterIds)
       const group = groups.get(h.par) ?? { totalStrokes: 0, count: 0, totalPar: 0 }
       group.totalStrokes += strokes
       group.count += 1
@@ -121,7 +121,7 @@ export default function Summary() {
     const back = playedHoles.filter(h => h.number >= 10)
     const calcNine = (holes: typeof playedHoles) => {
       if (holes.length < 9) return null
-      const strokes = holes.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+      const strokes = holes.reduce((s, h) => s + calcTotalStrokes(h, putterIds), 0)
       const par = holes.reduce((s, h) => s + h.par, 0)
       return { strokes, par, diff: strokes - par }
     }
@@ -132,7 +132,7 @@ export default function Summary() {
   const bestHole = (() => {
     let best: { number: number; diff: number } | null = null
     for (const h of playedHoles) {
-      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const strokes = calcTotalStrokes(h, putterIds)
       const d = strokes - h.par
       if (d < 0 && (best === null || d < best.diff)) {
         best = { number: h.number, diff: d }
@@ -145,7 +145,7 @@ export default function Summary() {
   const worstHole = (() => {
     let worst: { number: number; diff: number } | null = null
     for (const h of playedHoles) {
-      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const strokes = calcTotalStrokes(h, putterIds)
       const d = strokes - h.par
       if (d > 0 && (worst === null || d > worst.diff)) {
         worst = { number: h.number, diff: d }
@@ -159,7 +159,7 @@ export default function Summary() {
     let max = 0
     let current = 0
     for (const h of playedHoles) {
-      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const strokes = calcTotalStrokes(h, putterIds)
       if (strokes <= h.par) {
         current++
         if (current > max) max = current
@@ -468,7 +468,7 @@ export default function Summary() {
           </thead>
           <tbody>
             {round.holes.map(h => {
-              const s = h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+              const s = calcTotalStrokes(h, putterIds)
               return (
                 <tr key={h.number} className="border-t border-cream-dark">
                   <td className="px-3 py-2 font-medium">{h.number}</td>

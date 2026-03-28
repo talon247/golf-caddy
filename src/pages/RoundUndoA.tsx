@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { XCircle, ChevronLeft } from 'lucide-react'
 import { useAppStore } from '../store'
+import { calcTotalStrokes } from '../utils/scoring'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
 import FairwayToggle from '../components/FairwayToggle'
@@ -68,7 +69,7 @@ export default function RoundUndoA() {
   const hole = round.holes.find(h => h.number === currentHole)!
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   const nonPutterShots = hole.shots.filter(s => !putterIds.has(s.clubId)).length
-  const strokes = nonPutterShots + (hole.putts ?? 0) + (hole.penalties ?? 0)
+  const strokes = calcTotalStrokes(hole, putterIds)
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
 
@@ -78,7 +79,7 @@ export default function RoundUndoA() {
       : undefined
 
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((sum, h) => sum + calcTotalStrokes(h, putterIds), 0)
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
@@ -430,7 +431,7 @@ export default function RoundUndoA() {
               </thead>
               <tbody>
                 {round.holes.map(h => {
-                  const s = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+                  const s = calcTotalStrokes(h, putterIds)
                   return (
                     <tr
                       key={h.number}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { XCircle, RotateCcw } from 'lucide-react'
 import { useAppStore } from '../store'
+import { calcTotalStrokes } from '../utils/scoring'
 import { useGroupRoundStore } from '../store/groupRoundStore'
 import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useGroupRoundBroadcast } from '../hooks/useGroupRoundBroadcast'
@@ -72,10 +73,7 @@ export default function Round() {
   // Compute score values with null-safe guards (needed for the effect below).
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   const holeForEffect = round?.holes.find(h => h.number === currentHole) ?? null
-  const nonPutterShotsForEffect = holeForEffect
-    ? holeForEffect.shots.filter(s => !putterIds.has(s.clubId)).length
-    : 0
-  const strokesForEffect = nonPutterShotsForEffect + (holeForEffect?.putts ?? 0) + (holeForEffect?.penalties ?? 0)
+  const strokesForEffect = holeForEffect ? calcTotalStrokes(holeForEffect, putterIds) : 0
 
   const prevBroadcastRef = useRef<{ holeNumber: number; strokes: number; putts: number } | null>(null)
   useEffect(() => {
@@ -214,7 +212,7 @@ export default function Round() {
   // round is non-null below — compute derived values for rendering.
   const hole = round.holes.find(h => h.number === currentHole)!
   const nonPutterShots = hole.shots.filter(s => !putterIds.has(s.clubId)).length
-  const strokes = nonPutterShots + (hole.putts ?? 0) + (hole.penalties ?? 0)
+  const strokes = calcTotalStrokes(hole, putterIds)
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
 
@@ -226,7 +224,7 @@ export default function Round() {
 
   // Running totals
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((sum, h) => sum + calcTotalStrokes(h, putterIds), 0)
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
@@ -606,7 +604,7 @@ export default function Round() {
               </thead>
               <tbody>
                 {round.holes.map(h => {
-                  const s = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0)
+                  const s = calcTotalStrokes(h, putterIds)
                   return (
                     <tr
                       key={h.number}

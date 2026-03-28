@@ -7,6 +7,7 @@ import { loadState, saveState, addAbandonedRoundId, type PersistedState } from '
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
+import { calcTotalStrokes } from '../utils/scoring'
 import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase, lockGroupRoundRounds } from '../lib/sync'
 import { addToQueue, getQueue, processSyncQueue } from '../lib/syncQueue'
 import { useToastStore } from './toastStore'
@@ -367,7 +368,7 @@ export const useAppStore = create<StoreState>((set, get) => ({
         bag.filter(c => c.name.toLowerCase().includes('putter')).map(c => c.id),
       )
       const holeScores = existing.holes.map(
-        h => h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0),
+        h => calcTotalStrokes(h, putterIds),
       )
       const holePars = existing.holes.map(h => h.par)
       const ags = computeAGS(holeScores, holePars)

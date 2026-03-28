@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store'
+import { calcTotalStrokes } from '../utils/scoring'
 import { useHandicapEstimate } from '../hooks/useHandicapEstimate'
 import { RestoreRoundBanner } from '../components/RestoreRoundBanner'
 import FriendsPlayingCard from '../components/FriendsPlayingCard'
@@ -158,7 +159,7 @@ export default function Home() {
           </div>
           {(() => {
             const played = activeRound.holes.filter(h => h.shots.length > 0)
-            const totalStrokes = played.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+            const totalStrokes = played.reduce((s, h) => s + calcTotalStrokes(h, putterIds), 0)
             const playedPar = played.reduce((s, h) => s + h.par, 0)
             return (
               <div className="flex items-center justify-between mt-3">
@@ -212,7 +213,7 @@ export default function Home() {
           <ul className="flex flex-col gap-2">
             {pastRounds.map(round => {
               const played = round.holes.filter(h => h.shots.length > 0)
-              const totalStrokes = played.reduce((s, h) => s + h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
+              const totalStrokes = played.reduce((s, h) => s + calcTotalStrokes(h, putterIds), 0)
               const playedPar = played.reduce((s, h) => s + h.par, 0)
               const diff = totalStrokes - playedPar
               const date = new Date(round.startedAt).toLocaleDateString(undefined, {
