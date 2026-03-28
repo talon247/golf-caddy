@@ -19,12 +19,13 @@ export default function GroupRoundHost() {
   const [roomCode, setRoomCode] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [groupRoundId, setGroupRoundId] = useState<string | null>(null)
-  const [phase, setPhase] = useState<'lobby' | 'setup'>('lobby')
+  const [phase, setPhase] = useState<'lobby' | 'setup' | 'active'>('lobby')
   const [hostName, setHostName] = useState('')
   const [courseName, setCourseName] = useState('')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
   const [submitting, setSubmitting] = useState(false)
+  const [endingRound, setEndingRound] = useState(false)
 
   // Course search state
   const [courseRating, setCourseRating] = useState<number | null>(null)
@@ -39,9 +40,12 @@ export default function GroupRoundHost() {
   const createdRef = useRef(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
+  const setFinalStandings = useGroupRoundStore((s) => s.setFinalStandings)
   const resetLeaderboard = useLeaderboardStore((s) => s.reset)
+  const leaderboardPlayers = useLeaderboardStore((s) => s.players)
   const addRound = useAppStore((s) => s.addRound)
   const setActiveRoundId = useAppStore((s) => s.setActiveRoundId)
 
@@ -66,6 +70,9 @@ export default function GroupRoundHost() {
           setGroupRoundId(id)
           if (id) {
             saveGroupRoundRecovery({ groupRoundId: id, roomCode: code })
+            // Set up realtime channel so host can broadcast round_complete later
+            channelRef.current = supabase.channel(`group_round:${id}`)
+            channelRef.current.subscribe()
           }
           setState('ready')
           return
@@ -95,6 +102,10 @@ export default function GroupRoundHost() {
       setRoomCode(fallbackCode)
       setState('ready')
     })
+
+    return () => {
+      channelRef.current?.unsubscribe()
+    }
   }, [])
 
   // Debounced course search
@@ -162,6 +173,35 @@ export default function GroupRoundHost() {
 
   const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
 
+  // ── End the round ───────────────────────────────────────────────────────
+  async function handleEndRound() {
+    if (!groupRoundId) return
+    setEndingRound(true)
+
+    // Broadcast round_complete to all connected clients
+    if (channelRef.current) {
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'round_complete',
+        payload: { finalStandings: leaderboardPlayers },
+      })
+    }
+
+    // Update DB status (GroupRoundCompletionWatcher will pick this up on other clients)
+    try {
+      await supabase
+        .from('group_rounds')
+        .update({ status: 'completed' })
+        .eq('id', groupRoundId)
+    } catch {
+      // Non-fatal — watcher DB polling acts as fallback
+    }
+
+    setFinalStandings(leaderboardPlayers)
+    navigate('/group-round/leaderboard', { replace: true })
+  }
+
+  // ── Start the round ─────────────────────────────────────────────────────
   const handleStartRound = useCallback(async () => {
     setSubmitting(true)
     try {
@@ -205,11 +245,12 @@ export default function GroupRoundHost() {
         createdAt: new Date().toISOString(),
       })
 
-      navigate('/round')
+      // Show active host control screen; host can tap "Play My Round" to go to /round
+      setPhase('active')
     } finally {
       setSubmitting(false)
     }
-  }, [groupRoundId, courseName, holeCount, pars, courseRating, slopeRating, addRound, setActiveRoundId, setGroupRound, roomCode, navigate, hostName, resetLeaderboard])
+  }, [groupRoundId, courseName, holeCount, pars, courseRating, slopeRating, addRound, setActiveRoundId, setGroupRound, roomCode, hostName, resetLeaderboard])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -241,6 +282,42 @@ export default function GroupRoundHost() {
       <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
         <button onClick={() => navigate('/')} className="py-3 px-6 bg-forest text-cream rounded-xl font-semibold touch-target">
           Back to Home
+        </button>
+      </main>
+    )
+  }
+
+  if (phase === 'active') {
+    return (
+      <main className="flex flex-col flex-1 items-center justify-center p-6 gap-6 max-w-sm mx-auto w-full">
+        <div className="text-5xl">🏌️</div>
+        <div className="text-center">
+          <h2 className="text-2xl font-black text-forest">Round in Progress</h2>
+          <p className="text-warm-gray text-sm mt-1">Room {roomCode}</p>
+        </div>
+        <p className="text-warm-gray text-center text-sm">
+          Players are logging scores. When everyone is done, end the round to reveal final standings.
+        </p>
+        <button
+          onClick={() => navigate('/round')}
+          className="w-full py-3 rounded-2xl text-lg font-bold bg-forest text-cream shadow-md touch-target"
+        >
+          Play My Round →
+        </button>
+        <button
+          onClick={handleEndRound}
+          disabled={endingRound}
+          className={`w-full py-4 rounded-2xl text-lg font-bold shadow-md touch-target transition-opacity ${
+            endingRound ? 'bg-gold text-white opacity-40 cursor-not-allowed' : 'bg-gold text-white opacity-100'
+          }`}
+        >
+          {endingRound ? 'Ending Round…' : 'End Round'}
+        </button>
+        <button
+          onClick={() => navigate('/')}
+          className="text-sm text-warm-gray underline touch-target"
+        >
+          Go to Home (round stays open)
         </button>
       </main>
     )

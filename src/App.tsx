@@ -12,6 +12,8 @@ import Bag from './pages/Bag'
 import Courses from './pages/Courses'
 import GroupRoundHost from './pages/GroupRoundHost'
 import GroupRoundJoin from './pages/GroupRoundJoin'
+import GroupRoundLeaderboard from './pages/GroupRoundLeaderboard'
+import GroupRoundCompletionWatcher from './components/group-round/GroupRoundCompletionWatcher'
 import HandicapHistory from './pages/HandicapHistory'
 
 function Header() {
@@ -61,6 +63,7 @@ function App() {
         <AppInner />
         <div className="flex flex-col min-h-svh bg-cream">
           <Header />
+          <GroupRoundCompletionWatcher />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/setup" element={<Setup />} />
@@ -74,6 +77,7 @@ function App() {
             <Route path="/group-round/host" element={<GroupRoundHost />} />
             <Route path="/group-round/join" element={<GroupRoundJoin />} />
             <Route path="/group-round/join/:code" element={<GroupRoundJoin />} />
+            <Route path="/group-round/leaderboard" element={<GroupRoundLeaderboard />} />
             <Route path="/handicap" element={<HandicapHistory />} />
           </Routes>
         </div>

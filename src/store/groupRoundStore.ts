@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GroupRound, GroupRoundPlayer, GroupRoundStatus } from '../types'
+import type { GroupRound, GroupRoundPlayer, GroupRoundStatus, PlayerScore } from '../types'
 
 interface GroupRoundStore {
   groupRound: GroupRound | null
@@ -9,6 +9,8 @@ interface GroupRoundStore {
   // Join flow state
   currentPlayer: GroupRoundPlayer | null
   players: GroupRoundPlayer[]
+  // Final standings after round_complete event
+  finalStandings: PlayerScore[] | null
 
   setGroupRound: (round: GroupRound) => void
   setStatus: (status: GroupRoundStatus) => void
@@ -20,6 +22,7 @@ interface GroupRoundStore {
   setPlayers: (players: GroupRoundPlayer[]) => void
   // Join flow
   setCurrentPlayer: (player: GroupRoundPlayer) => void
+  setFinalStandings: (standings: PlayerScore[]) => void
   clearGroupRound: () => void
   reset: () => void
 }
@@ -30,6 +33,7 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
   error: null,
   currentPlayer: null,
   players: [],
+  finalStandings: null,
 
   setGroupRound: (round) => set({ groupRound: round, status: 'waiting', error: null }),
 
@@ -76,7 +80,9 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
 
   setCurrentPlayer: (player) => set({ currentPlayer: player }),
 
-  clearGroupRound: () => set({ groupRound: null, currentPlayer: null, players: [], status: 'idle', error: null }),
+  setFinalStandings: (standings) => set({ finalStandings: standings, status: 'completed' }),
 
-  reset: () => set({ groupRound: null, status: 'idle', error: null, currentPlayer: null, players: [] }),
+  clearGroupRound: () => set({ groupRound: null, currentPlayer: null, players: [], status: 'idle', error: null, finalStandings: null }),
+
+  reset: () => set({ groupRound: null, status: 'idle', error: null, currentPlayer: null, players: [], finalStandings: null }),
 }))
