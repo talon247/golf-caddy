@@ -27,7 +27,7 @@ export default function PenaltiesInput({ value, onChange }: PenaltiesInputProps)
         >
           −
         </button>
-        <span className="w-8 text-center text-2xl font-bold text-forest tabular-nums">
+        <span className={`w-8 text-center text-2xl font-bold tabular-nums ${current > 0 ? 'text-red-600' : 'text-forest'}`}>
           {value === undefined || current === 0 ? '—' : current}
         </span>
         <button
