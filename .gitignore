@@ -28,3 +28,4 @@ dist-ssr
 # Supabase secrets — never commit service role key
 supabase/.env
 golf-caddy-se2-thea-82/
+.env*.local
