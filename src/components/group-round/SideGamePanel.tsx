@@ -14,8 +14,30 @@ export default function SideGamePanel() {
   const { skins, nassau, press, stableford, processedHoles } = useSideGameState()
   const players = useLeaderboardStore((s) => s.players)
   const sideGameConfig = useGroupRoundStore((s) => s.sideGameConfig)
+  const groupRoundStatus = useGroupRoundStore((s) => s.status)
 
-  if (!sideGameConfig || !sideGameConfig.sideGamesEnabled) return null
+  // Explicitly disabled — hide panel
+  if (sideGameConfig && !sideGameConfig.sideGamesEnabled) return null
+
+  // No group round active — hide panel
+  if (groupRoundStatus !== 'active' && groupRoundStatus !== 'completed') {
+    if (!sideGameConfig) return null
+  }
+
+  // Config not yet received (race window for late-joining guests) — show skeleton
+  if (!sideGameConfig) {
+    return (
+      <div className="mx-4 mt-3 rounded-2xl border border-[#e5e1d8] bg-white shadow-sm overflow-hidden">
+        <div className="w-full flex items-center justify-between px-4 py-3 bg-[#2d5a27] text-white">
+          <span className="font-semibold text-sm">Side Games · Loading…</span>
+        </div>
+        <div className="px-4 py-3 flex flex-col gap-2">
+          <div className="h-4 w-3/4 rounded bg-[#e5e1d8] animate-pulse" />
+          <div className="h-4 w-1/2 rounded bg-[#e5e1d8] animate-pulse" />
+        </div>
+      </div>
+    )
+  }
 
   const lastHole = processedHoles.length > 0 ? processedHoles[processedHoles.length - 1] : 0
   const activeGames = sideGameConfig.gameTypes
