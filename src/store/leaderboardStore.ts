@@ -7,8 +7,6 @@ interface LeaderboardState {
   isLoading: boolean
   updateScore: (delta: ScoreDelta) => void
   setOffline: (playerId: string, offline: boolean) => void
-  setPlayers: (players: PlayerScore[]) => void
-  setLoading: (loading: boolean) => void
   reset: () => void
 }
 
@@ -34,9 +32,6 @@ export const useLeaderboardStore = create<LeaderboardState>((set) => ({
       ),
     })),
 
-  setPlayers: (players) => set({ players }),
-
-  setLoading: (loading) => set({ isLoading: loading }),
-
-  reset: () => set({ players: [], isLoading: false }),
+  reset: () => set({ players: [] }),
 }))
+
