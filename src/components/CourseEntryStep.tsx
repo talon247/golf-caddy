@@ -245,6 +245,7 @@ export default function CourseEntryStep({ value, onChange, onModeChange }: Props
                       <span className="font-semibold text-sm text-[#1a1a1a]">{ts.tee_name}</span>
                       <span className="text-xs text-gray-500 tabular-nums">
                         {ts.course_rating.toFixed(1)} / {ts.slope_rating}
+                        {ts.total_yards ? ` · ${ts.total_yards.toLocaleString()} yds` : ''}
                       </span>
                     </button>
                   </li>
