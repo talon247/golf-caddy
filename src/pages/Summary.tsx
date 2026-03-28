@@ -6,6 +6,8 @@ import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
 import DiscordInviteBanner from '../components/DiscordInviteBanner'
+import SettlementScreen from '../components/group-round/SettlementScreen'
+import { useGroupRoundStore } from '../store/groupRoundStore'
 import { CANNY_WISH_LIST_URL } from '../lib/config'
 
 function scoreDiff(strokes: number, par: number): string {
@@ -31,6 +33,8 @@ export default function Summary() {
   const deleteRound = useAppStore(s => s.deleteRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
   const isAuthenticated = useAppStore(s => s.isAuthenticated)
+  const groupRound = useGroupRoundStore(s => s.groupRound)
+  const sideGameConfig = useGroupRoundStore(s => s.sideGameConfig)
 
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   const round = rounds.find(r => r.id === id)
@@ -272,6 +276,11 @@ export default function Summary() {
           </tfoot>
         </table>
       </div>
+
+      {/* Settlement (group round with side games) */}
+      {round.completedAt && groupRound?.status === 'completed' && sideGameConfig?.sideGamesEnabled && (
+        <SettlementScreen />
+      )}
 
       {/* Discord invite nudge */}
       <DiscordInviteBanner />
