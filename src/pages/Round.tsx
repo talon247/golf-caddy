@@ -76,6 +76,8 @@ export default function Round() {
       prev.strokes === strokesForEffect &&
       prev.putts === putts
     ) return
+    // Don't broadcast until at least 1 shot is logged on this hole
+    if (strokesForEffect === 0) return
     prevBroadcastRef.current = { holeNumber: currentHole, strokes: strokesForEffect, putts }
     const delta = {
       playerId: myPlayerId,
@@ -488,3 +490,4 @@ export default function Round() {
     </main>
   )
 }
+

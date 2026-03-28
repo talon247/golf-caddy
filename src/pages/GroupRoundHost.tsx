@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useGroupRoundStore } from '../store/groupRoundStore'
+import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useAppStore } from '../store'
 import ParGridEditor from '../components/ParGridEditor'
 
@@ -23,6 +24,7 @@ export default function GroupRoundHost() {
   const createdRef = useRef(false)
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
+  const resetLeaderboard = useLeaderboardStore((s) => s.reset)
   const addRound = useAppStore((s) => s.addRound)
   const setActiveRoundId = useAppStore((s) => s.setActiveRoundId)
 
@@ -104,6 +106,8 @@ export default function GroupRoundHost() {
       })
       setActiveRoundId(id)
 
+      // Reset leaderboard so prior rounds don't bleed in
+      resetLeaderboard()
       setGroupRound({
         id: groupRoundId ?? crypto.randomUUID(),
         roomCode,
@@ -287,3 +291,4 @@ export default function GroupRoundHost() {
     </main>
   )
 }
+

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = supabase.rpc.bind(supabase) as (...args: any[]) => any
 import { useGroupRoundStore, useAppStore } from '../store'
+import { useLeaderboardStore } from '../store/leaderboardStore'
 import type { GroupRound, GroupRoundPlayer, GroupRoundStatus, JoinError } from '../types'
 import CodeEntry from '../components/group-round/CodeEntry'
 import DisplayNameEntry from '../components/group-round/DisplayNameEntry'
@@ -44,6 +45,7 @@ export default function GroupRoundJoin() {
   const [loading, setLoading] = useState(false)
 
   const setGroupRound = useGroupRoundStore(s => s.setGroupRound)
+  const resetLeaderboard = useLeaderboardStore(s => s.reset)
   const setCurrentPlayer = useGroupRoundStore(s => s.setCurrentPlayer)
   const addRound = useAppStore(s => s.addRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
@@ -111,6 +113,7 @@ export default function GroupRoundJoin() {
         roundId: null,
         joinedAt: new Date().toISOString(),
       }
+      resetLeaderboard()
       setGroupRound(groupRound)
       setCurrentPlayer(player)
 
@@ -169,3 +172,4 @@ export default function GroupRoundJoin() {
     </main>
   )
 }
+
