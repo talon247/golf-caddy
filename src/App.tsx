@@ -10,6 +10,7 @@ import Summary from './pages/Summary'
 import Bag from './pages/Bag'
 import Courses from './pages/Courses'
 import GroupRoundHost from './pages/GroupRoundHost'
+import GroupRoundJoin from './pages/GroupRoundJoin'
 import HandicapHistory from './pages/HandicapHistory'
 
 function Header() {
@@ -64,6 +65,8 @@ function App() {
             <Route path="/bag" element={<Bag />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/group-round/host" element={<GroupRoundHost />} />
+            <Route path="/group-round/join" element={<GroupRoundJoin />} />
+            <Route path="/group-round/join/:code" element={<GroupRoundJoin />} />
             <Route path="/handicap" element={<HandicapHistory />} />
           </Routes>
         </div>

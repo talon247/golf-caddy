@@ -147,6 +147,12 @@ export default function Home() {
           >
             👥 Start Group Round
           </Link>
+          <Link
+            to="/group-round/join"
+            className="flex items-center justify-center border-2 border-forest text-forest py-4 rounded-2xl text-lg font-bold touch-target"
+          >
+            Join Round
+          </Link>
         </div>
       )}
 

@@ -51,22 +51,35 @@ export interface AppState {
   activeRoundId?: string
 }
 
+// ── Multiplayer / Group Round ──────────────────────────────────────────────
+
+/** Combined status covering both host flow and DB states */
+export type GroupRoundStatus = 'idle' | 'creating' | 'waiting' | 'starting' | 'active' | 'completed' | 'error'
+
 export interface GroupRoundPlayer {
   id: string
-  playerName: string
-  presenceKey: string
-  joinedAt: number
+  // Host flow (presence-based)
+  playerName?: string
+  presenceKey?: string
+  // Join flow (DB-based)
+  groupRoundId?: string
+  userId?: string | null
+  displayName?: string
+  roundId?: string | null
+  joinedAt: number | string
 }
-
-export type GroupRoundStatus = 'idle' | 'creating' | 'waiting' | 'starting' | 'error'
 
 export interface GroupRound {
   id: string
   roomCode: string
-  hostName: string
-  players: GroupRoundPlayer[]
+  // Host flow
+  hostName?: string
+  players?: GroupRoundPlayer[]
+  // Join flow
+  hostUserId?: string | null
+  expiresAt?: string
   status: GroupRoundStatus
-  createdAt: number
+  createdAt: number | string
 }
 
 export interface ScoreDelta {
@@ -89,4 +102,19 @@ export interface PlayerScore {
   isOnline: boolean
   lastSyncedAt: string
   holes: Record<number, { strokes: number; putts: number; par: number }>
+}
+
+export type JoinError = 'not_found' | 'expired' | 'full' | 'network'
+
+export interface JoinGroupRoundResult {
+  success: true
+  groupRoundId: string
+  playerId: string
+  roomCode: string
+}
+
+export interface JoinGroupRoundError {
+  success: false
+  error: JoinError
+  message: string
 }
