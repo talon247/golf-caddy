@@ -58,8 +58,12 @@ export default function JoinLobby() {
           status: 'active',
         }
         setGroupRound(updated)
+        // Store group round ID in localStorage for Setup to pick up
+        if (result.id) {
+          localStorage.setItem('golf-caddy-group-round-id', result.id)
+        }
         clearInterval(intervalRef.current!)
-        navigate('/round', { replace: true })
+        navigate('/setup', { replace: true })
       }
     }
 
@@ -110,3 +114,4 @@ export default function JoinLobby() {
     </div>
   )
 }
+

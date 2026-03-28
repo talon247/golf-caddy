@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
-import { useCourseStore } from '../store'
+import { useCourseStore, useGroupRoundStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
 import ParGridEditor from '../components/ParGridEditor'
 import CourseEntryStep from '../components/CourseEntryStep'
@@ -20,6 +20,7 @@ export default function Setup() {
   const navigate = useNavigate()
   const { addRound, setActiveRoundId, completeRound, activeRoundId, clubBag } = useAppStore()
   const { courses } = useCourseStore()
+  const setGroupRoundInStore = useGroupRoundStore(s => s.setGroupRound)
 
   const [courseName, setCourseName] = useState('')
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
@@ -85,6 +86,19 @@ export default function Setup() {
       })),
     })
     setActiveRoundId(id)
+    // Check if we're in a group round context
+    const groupRoundId = localStorage.getItem('golf-caddy-group-round-id')
+    if (groupRoundId) {
+      localStorage.removeItem('golf-caddy-group-round-id')
+      setGroupRoundInStore({
+        id: groupRoundId,
+        roomCode: '',
+        hostUserId: null,
+        status: 'active',
+        expiresAt: '',
+        createdAt: new Date().toISOString(),
+      })
+    }
     navigate('/round')
   }
 
@@ -267,3 +281,4 @@ export default function Setup() {
     </div>
   )
 }
+

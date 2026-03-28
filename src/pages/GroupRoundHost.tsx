@@ -78,9 +78,16 @@ export default function GroupRoundHost() {
           .update({ status: 'active' })
           .eq('id', groupRoundId)
       }
+      // Store group round context for Setup to pick up
+      if (groupRoundId) {
+        localStorage.setItem('golf-caddy-group-round-id', groupRoundId)
+      }
       navigate('/setup')
     } catch (err) {
       console.error('Failed to start round:', err)
+      if (groupRoundId) {
+        localStorage.setItem('golf-caddy-group-round-id', groupRoundId)
+      }
       navigate('/setup') // navigate anyway
     } finally {
       setStarting(false)
@@ -175,4 +182,5 @@ export default function GroupRoundHost() {
     </main>
   )
 }
+
 
