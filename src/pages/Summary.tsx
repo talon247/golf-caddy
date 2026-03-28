@@ -1,10 +1,12 @@
 
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
 import DiscordInviteBanner from '../components/DiscordInviteBanner'
+import { CANNY_WISH_LIST_URL } from '../lib/config'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -82,6 +84,21 @@ export default function Summary() {
     if (!isInHistory) return handicapResult.estimate
     return null // can't easily compute prior without re-running engine; skip delta
   })()
+
+  const [cannyDismissed, setCannyDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('canny_banner_dismissed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  function dismissCanny() {
+    try {
+      sessionStorage.setItem('canny_banner_dismissed', 'true')
+    } catch { /* ignore */ }
+    setCannyDismissed(true)
+  }
 
   function handleDelete() {
     deleteRound(round!.id)
@@ -193,6 +210,27 @@ export default function Summary() {
           <p className="text-xs text-warm-gray mt-1 px-1">
             Unofficial WHS estimate. Not affiliated with USGA or R&amp;A.
           </p>
+        </div>
+      )}
+
+      {/* Canny wish list nudge — signed-in users only, dismissable per session */}
+      {isAuthenticated && !cannyDismissed && (
+        <div className="bg-white rounded-xl border border-[#e5e1d8] px-4 py-3 flex items-center justify-between gap-3">
+          <a
+            href={CANNY_WISH_LIST_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-[#2d5a27] font-semibold"
+          >
+            💡 Got ideas? Help shape Golf Caddy →
+          </a>
+          <button
+            onClick={dismissCanny}
+            aria-label="Dismiss"
+            className="text-[#6b6b6b] text-lg leading-none shrink-0"
+          >
+            ×
+          </button>
         </div>
       )}
 

@@ -10,9 +10,13 @@ import PuttsInput from '../components/PuttsInput'
 import PenaltiesInput from '../components/PenaltiesInput'
 import FairwayToggle from '../components/FairwayToggle'
 import LiveLeaderboard from '../components/LiveLeaderboard'
+import SideGamePanel from '../components/group-round/SideGamePanel'
+import SettlementScreen from '../components/group-round/SettlementScreen'
+import { useSideGameState } from '../hooks/useSideGameState'
 import { syncActiveRound, syncRoundToSupabase } from '../lib/sync'
+import { lockSideGameConfig as lockSideGameConfigInDb } from '../lib/sideGames/config'
 
-type Tab = 'round' | 'scorecard' | 'leaderboard'
+type Tab = 'round' | 'scorecard' | 'leaderboard' | 'sidegames'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -57,6 +61,10 @@ export default function Round() {
   // ── Group round broadcast ─────────────────────────────────────────────────
   // All hooks must appear before any early returns (Rules of Hooks).
   const groupRound = useGroupRoundStore((s) => s.groupRound)
+  const sideGameConfig = useGroupRoundStore((s) => s.sideGameConfig)
+  const sideGameConfigLocked = useGroupRoundStore((s) => s.sideGameConfigLocked)
+  const lockSideGameConfig = useGroupRoundStore((s) => s.lockSideGameConfig)
+  const { processedHoles } = useSideGameState()
   const updateLeaderboard = useLeaderboardStore((s) => s.updateScore)
   const myPlayerId = round?.id ?? ''
   const { broadcastScore, isOffline } = useGroupRoundBroadcast(groupRound?.id ?? null, myPlayerId)
@@ -96,6 +104,44 @@ export default function Round() {
     broadcastScore(delta)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strokesForEffect, holeForEffect?.putts, currentHole, groupRound?.id])
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Auto-switch to settlement when all holes are processed in a group round
+  useEffect(() => {
+    if (
+      groupRound &&
+      sideGameConfig?.sideGamesEnabled &&
+      round &&
+      processedHoles.length >= round.holeCount
+    ) {
+      setActiveTab('sidegames')
+    }
+  // Run once when processedHoles count reaches holeCount; stable round/groupRound refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [processedHoles.length])
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── THEA-232: Lock side game config after first score is entered ──────────
+  // Derive whether any score has been entered across all holes.
+  const anyScoreEntered = round
+    ? round.holes.some(
+        (h) => h.shots.length > 0 || (h.putts ?? 0) > 0 || (h.penalties ?? 0) > 0,
+      )
+    : false
+
+  useEffect(() => {
+    if (
+      groupRound &&
+      sideGameConfig?.sideGamesEnabled &&
+      anyScoreEntered &&
+      !sideGameConfigLocked
+    ) {
+      lockSideGameConfig()
+      // Best-effort DB persist — silently ignore errors (non-critical path)
+      void lockSideGameConfigInDb(groupRound.id).catch(() => undefined)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anyScoreEntered])
   // ─────────────────────────────────────────────────────────────────────────
 
   // ── THEA-144 + THEA-146: Active round background persistence ─────────────
@@ -289,9 +335,31 @@ export default function Round() {
             Leaderboard
           </button>
         )}
+        {groupRound && sideGameConfig?.sideGamesEnabled && (
+          <button
+            onClick={() => setActiveTab('sidegames')}
+            className={`flex-1 py-3 text-sm font-semibold transition-colors touch-target ${
+              activeTab === 'sidegames'
+                ? 'text-forest border-b-2 border-forest'
+                : 'text-warm-gray'
+            }`}
+          >
+            Side Games
+          </button>
+        )}
       </div>
 
       {activeTab === 'leaderboard' && <LiveLeaderboard />}
+
+      {activeTab === 'sidegames' && (
+        <div className="flex flex-col flex-1 overflow-y-auto pb-6">
+          {round && processedHoles.length >= round.holeCount && sideGameConfig?.sideGamesEnabled ? (
+            <SettlementScreen />
+          ) : (
+            <SideGamePanel />
+          )}
+        </div>
+      )}
 
       {activeTab === 'round' && (
         <div className={`flex flex-col flex-1 p-4 gap-4${strokes > 0 ? ' pb-28' : ''}`}>
@@ -557,7 +625,7 @@ export default function Round() {
               <tfoot>
                 <tr className="border-t-2 border-forest bg-cream-dark font-bold">
                   <td className="px-3 py-2">Total</td>
-                  <td className="px-3 py-2 text-center">{round.holes.reduce((s, h) => s + h.par, 0)}</td>
+                  <td className="px-3 py-2 text-center">{round.holes.slice(0, round.holeCount).reduce((s, h) => s + h.par, 0)}</td>
                   <td className="px-3 py-2 text-center">{totalStrokes || '—'}</td>
                   <td className={`px-3 py-2 text-center ${runningDiff > 0 ? 'text-red-600' : runningDiff < 0 ? 'text-forest-mid' : 'text-gray-700'}`}>
                     {totalStrokes > 0 ? scoreDiff(totalStrokes, totalPar) : '—'}

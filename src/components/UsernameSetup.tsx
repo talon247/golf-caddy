@@ -4,6 +4,7 @@ import { checkUsernameAvailable, setUsername } from '../lib/friends'
 interface Props {
   userId: string
   onComplete: (username: string) => void
+  onDismiss?: () => void
 }
 
 const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
@@ -12,7 +13,7 @@ const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
  * Modal shown on first Friends page visit when the user has no username set.
  * Allows picking a unique username (3-20 chars, lowercase alphanumeric + underscore).
  */
-export function UsernameSetup({ userId, onComplete }: Props) {
+export function UsernameSetup({ userId, onComplete, onDismiss }: Props) {
   const [value, setValue] = useState('')
   const [checking, setChecking] = useState(false)
   const [available, setAvailable] = useState<boolean | null>(null)
@@ -75,7 +76,21 @@ export function UsernameSetup({ userId, onComplete }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-[env(safe-area-inset-bottom)]">
       <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-xl">
-        <h2 className="text-xl font-bold text-[#1a1a1a] mb-1">Choose your username</h2>
+        <div className="flex items-start justify-between mb-1">
+          <h2 className="text-xl font-bold text-[#1a1a1a]">Choose your username</h2>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Dismiss"
+              className="text-[#6b6b6b] hover:text-[#1a1a1a] transition-colors ml-2 mt-0.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
+        </div>
         <p className="text-sm text-[#6b6b6b] mb-5">
           Friends can find and add you by username. You can change it later in settings.
         </p>
@@ -118,6 +133,16 @@ export function UsernameSetup({ userId, onComplete }: Props) {
           >
             {saving ? 'Saving…' : 'Set username'}
           </button>
+
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="w-full text-center text-sm text-[#6b6b6b] mt-3 py-1 hover:text-[#1a1a1a] transition-colors"
+            >
+              Maybe later
+            </button>
+          )}
         </form>
       </div>
     </div>

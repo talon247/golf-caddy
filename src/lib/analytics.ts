@@ -16,7 +16,7 @@ export interface AnalyticsMetrics {
 }
 
 function totalStrokes(round: Round): number {
-  return round.holes.reduce((acc, h) =>
+  return round.holes.slice(0, round.holeCount).reduce((acc, h) =>
     acc + h.shots.length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
 }
 

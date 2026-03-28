@@ -12,6 +12,7 @@ interface SideGameConfigRow {
   nassau_stake_overall: number | null
   press_enabled: boolean
   press_trigger_threshold: number
+  locked: boolean
   created_at: string
 }
 
@@ -55,6 +56,20 @@ export async function saveSideGameConfig(
 }
 
 /**
+ * Marks the side game config as locked in the DB.
+ * Called once the first score is entered. Best-effort — callers should catch errors.
+ */
+export async function lockSideGameConfig(groupRoundId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('side_game_configs')
+    .update({ locked: true })
+    .eq('group_round_id', groupRoundId)
+
+  if (error) throw error
+}
+
+/**
  * Reads the side game config for a group round.
  * Returns null if no config row exists.
  */
@@ -81,5 +96,6 @@ export async function fetchSideGameConfig(
     nassauStakeOverall: row.nassau_stake_overall ?? null,
     pressEnabled: row.press_enabled ?? true,
     pressTriggerThreshold: row.press_trigger_threshold ?? 2,
+    locked: row.locked ?? false,
   }
 }

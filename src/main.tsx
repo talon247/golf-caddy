@@ -1,8 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
+import LogRocket from 'logrocket'
 import './index.css'
 import App from './App.tsx'
+
+if (import.meta.env.PROD && import.meta.env.VITE_LOGROCKET_APP_ID) {
+  LogRocket.init(import.meta.env.VITE_LOGROCKET_APP_ID as string)
+}
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,

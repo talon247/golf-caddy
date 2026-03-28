@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { useFriendsStore } from '../store/friendsStore'
 import { FriendListItem } from '../components/FriendListItem'
@@ -9,6 +10,7 @@ import type { FriendSearchResult } from '../types'
 type Tab = 'friends' | 'requests' | 'search'
 
 export default function Friends() {
+  const navigate = useNavigate()
   const isAuthenticated = useAppStore(s => s.isAuthenticated)
   const userId = useAppStore(s => s.userId)
   const profile = useAppStore(s => s.profile)
@@ -49,11 +51,10 @@ export default function Friends() {
     loadPendingRequests()
   }, [isAuthenticated, loadFriends, loadPendingRequests])
 
-  // Show username setup on first visit if no username yet
+  // Show username setup on first visit if no username yet; close it if username becomes set
   useEffect(() => {
-    if (isAuthenticated && profile && !profile.username) {
-      setShowUsernameSetup(true)
-    }
+    if (!isAuthenticated || !profile) return
+    setShowUsernameSetup(!profile.username)
   }, [isAuthenticated, profile])
 
   // Debounced search
@@ -65,9 +66,14 @@ export default function Friends() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     setSearching(true)
     debounceRef.current = setTimeout(async () => {
-      const results = await searchUsers(searchQuery.trim())
-      setSearchResults(results)
-      setSearching(false)
+      try {
+        const results = await searchUsers(searchQuery.trim())
+        setSearchResults(results)
+      } catch {
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
     }, 350)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -141,7 +147,11 @@ export default function Friends() {
     <main className="flex-1 flex flex-col pb-24">
       {/* Username setup modal */}
       {showUsernameSetup && userId && (
-        <UsernameSetup userId={userId} onComplete={handleUsernameSet} />
+        <UsernameSetup
+          userId={userId}
+          onComplete={handleUsernameSet}
+          onDismiss={() => setShowUsernameSetup(false)}
+        />
       )}
 
       {/* Header */}
@@ -201,11 +211,19 @@ export default function Friends() {
               </div>
             )}
             {friends.map(friend => (
-              <FriendListItem
-                key={friend.friendshipId}
-                friend={friend}
-                onRemove={handleRemove}
-              />
+              <div key={friend.friendshipId} className="flex flex-col gap-1">
+                <FriendListItem
+                  friend={friend}
+                  onRemove={handleRemove}
+                />
+                <button
+                  type="button"
+                  onClick={() => navigate(`/settlement-history?friend=${friend.friendUserId}`)}
+                  className="text-xs text-[#2d5a27] font-semibold text-right px-2 py-1 active:opacity-70 transition-opacity"
+                >
+                  View rivalry →
+                </button>
+              </div>
             ))}
           </>
         )}

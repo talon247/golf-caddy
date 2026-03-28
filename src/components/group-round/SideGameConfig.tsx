@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { SideGameConfig, SideGameType } from '../../types'
+import { useGroupRoundStore } from '../../store/groupRoundStore'
 
 const DEFAULT_CONFIG: SideGameConfig = {
   sideGamesEnabled: false,
@@ -25,6 +26,7 @@ function parseStake(raw: string): number | null {
 
 export default function SideGameConfig({ onBack, onStartRound, submitting }: Props) {
   const [config, setConfig] = useState<SideGameConfig>(DEFAULT_CONFIG)
+  const locked = useGroupRoundStore((s) => s.sideGameConfigLocked)
 
   const toggleEnabled = useCallback(() => {
     setConfig((prev) => ({ ...prev, sideGamesEnabled: !prev.sideGamesEnabled }))
@@ -58,6 +60,13 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
         <h1 className="text-2xl font-black text-forest">Side Games</h1>
       </div>
 
+      {locked && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-amber-800 text-sm font-medium">
+          <span aria-hidden>🔒</span>
+          Config locked — scores have been entered and the setup can no longer be changed.
+        </div>
+      )}
+
       {/* Enable toggle */}
       <div className="bg-white rounded-2xl border border-[#e5e1d8] p-4 flex items-center justify-between">
         <div>
@@ -68,10 +77,11 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
           type="button"
           role="switch"
           aria-checked={config.sideGamesEnabled}
-          onClick={toggleEnabled}
+          onClick={locked ? undefined : toggleEnabled}
+          disabled={locked}
           className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${
             config.sideGamesEnabled ? 'bg-[#2d5a27]' : 'bg-gray-300'
-          }`}
+          } ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <span
             className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
@@ -87,8 +97,9 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
           <div className="bg-white rounded-2xl border border-[#e5e1d8] overflow-hidden">
             <button
               type="button"
-              onClick={() => toggleGameType('skins')}
-              className="w-full flex items-center justify-between px-4 py-3 min-h-[48px]"
+              onClick={locked ? undefined : () => toggleGameType('skins')}
+              disabled={locked}
+              className={`w-full flex items-center justify-between px-4 py-3 min-h-[48px] ${locked ? 'cursor-not-allowed' : ''}`}
             >
               <span className="font-semibold text-[#1a1a1a]">Skins</span>
               <CheckboxIcon checked={skinsActive} />
@@ -111,7 +122,9 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
                       setConfig((prev) => ({ ...prev, stakePerSkin: parseStake(e.target.value) }))
                     }
                     placeholder="0.00"
-                    className="w-full py-3 pl-8 pr-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27]"
+                    disabled={locked}
+                    readOnly={locked}
+                    className={`w-full py-3 pl-8 pr-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27] ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                   />
                 </div>
               </div>
@@ -122,8 +135,9 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
           <div className="bg-white rounded-2xl border border-[#e5e1d8] overflow-hidden">
             <button
               type="button"
-              onClick={() => toggleGameType('nassau')}
-              className="w-full flex items-center justify-between px-4 py-3 min-h-[48px]"
+              onClick={locked ? undefined : () => toggleGameType('nassau')}
+              disabled={locked}
+              className={`w-full flex items-center justify-between px-4 py-3 min-h-[48px] ${locked ? 'cursor-not-allowed' : ''}`}
             >
               <span className="font-semibold text-[#1a1a1a]">Nassau</span>
               <CheckboxIcon checked={nassauActive} />
@@ -154,7 +168,9 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
                           setConfig((prev) => ({ ...prev, [key]: parseStake(e.target.value) }))
                         }
                         placeholder="0.00"
-                        className="w-full py-3 pl-8 pr-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27]"
+                        disabled={locked}
+                        readOnly={locked}
+                        className={`w-full py-3 pl-8 pr-4 rounded-xl border-2 border-[#e5e1d8] bg-white text-[#1a1a1a] font-medium focus:outline-none focus:border-[#2d5a27] ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                       />
                     </div>
                   </div>
@@ -164,8 +180,9 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
                 <div className="mt-1 flex flex-col gap-3">
                   <button
                     type="button"
-                    onClick={() => toggleGameType('press')}
-                    className="flex items-center justify-between min-h-[40px]"
+                    onClick={locked ? undefined : () => toggleGameType('press')}
+                    disabled={locked}
+                    className={`flex items-center justify-between min-h-[40px] ${locked ? 'cursor-not-allowed' : ''}`}
                   >
                     <span className="text-sm font-medium text-gray-700">Press</span>
                     <CheckboxIcon checked={pressActive} />
@@ -178,14 +195,15 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
                           <button
                             key={n}
                             type="button"
-                            onClick={() =>
+                            onClick={locked ? undefined : () =>
                               setConfig((prev) => ({ ...prev, pressTriggerThreshold: n }))
                             }
+                            disabled={locked}
                             className={`flex-1 py-2.5 rounded-xl border-2 font-semibold text-sm transition-colors ${
                               config.pressTriggerThreshold === n
                                 ? 'bg-[#2d5a27] border-[#2d5a27] text-white'
                                 : 'bg-white border-[#e5e1d8] text-[#1a1a1a]'
-                            }`}
+                            } ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
                           >
                             {n}
                           </button>
@@ -202,8 +220,9 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
           <div className="bg-white rounded-2xl border border-[#e5e1d8]">
             <button
               type="button"
-              onClick={() => toggleGameType('stableford')}
-              className="w-full flex items-center justify-between px-4 py-3 min-h-[48px]"
+              onClick={locked ? undefined : () => toggleGameType('stableford')}
+              disabled={locked}
+              className={`w-full flex items-center justify-between px-4 py-3 min-h-[48px] ${locked ? 'cursor-not-allowed' : ''}`}
             >
               <span className="font-semibold text-[#1a1a1a]">Stableford</span>
               <CheckboxIcon checked={hasGame('stableford')} />
@@ -215,11 +234,11 @@ export default function SideGameConfig({ onBack, onStartRound, submitting }: Pro
       <div className="mt-auto">
         <button
           type="button"
-          onClick={() => onStartRound(config)}
-          disabled={submitting}
+          onClick={locked ? undefined : () => onStartRound(config)}
+          disabled={submitting || locked}
           className="w-full py-4 rounded-xl bg-[#2d5a27] text-white text-lg font-bold min-h-[56px] active:scale-95 transition-transform disabled:opacity-60"
         >
-          {submitting ? 'Starting…' : 'Start Round'}
+          {submitting ? 'Starting…' : locked ? 'Round in Progress' : 'Start Round'}
         </button>
       </div>
     </main>

@@ -48,8 +48,8 @@ export const useFriendsStore = create<FriendsStore>((set) => ({
     try {
       const pendingRequests = await getPendingRequests()
       set({ pendingRequests })
-    } catch {
-      // Non-fatal: silently ignore if RPCs not yet deployed
+    } catch (err) {
+      set({ error: (err as Error).message ?? 'Failed to load friend requests' })
     }
   },
 
@@ -94,8 +94,10 @@ export const useFriendsStore = create<FriendsStore>((set) => ({
   searchUsers: async (query: string) => {
     try {
       return await searchUsers(query)
-    } catch {
-      return []
+    } catch (err) {
+      const message = (err as Error).message ?? 'Search failed'
+      set({ error: message })
+      throw err
     }
   },
 

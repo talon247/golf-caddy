@@ -395,7 +395,7 @@ export default function RoundUndoB() {
               <tfoot>
                 <tr className="border-t-2 border-forest bg-cream-dark font-bold">
                   <td className="px-3 py-2">Total</td>
-                  <td className="px-3 py-2 text-center">{round.holes.reduce((s, h) => s + h.par, 0)}</td>
+                  <td className="px-3 py-2 text-center">{round.holes.slice(0, round.holeCount).reduce((s, h) => s + h.par, 0)}</td>
                   <td className="px-3 py-2 text-center">{totalStrokes || '—'}</td>
                   <td className={`px-3 py-2 text-center ${runningDiff > 0 ? 'text-red-600' : runningDiff < 0 ? 'text-forest-mid' : 'text-gray-700'}`}>
                     {totalStrokes > 0 ? scoreDiff(totalStrokes, totalPar) : '—'}

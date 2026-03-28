@@ -13,7 +13,7 @@ function formatDate(ts: number): string {
 }
 
 function computeScoreVsPar(round: Round): number | null {
-  const played = round.holes.filter(h => h.shots.length > 0 || (h.putts ?? 0) > 0)
+  const played = round.holes.slice(0, round.holeCount).filter(h => h.shots.length > 0 || (h.putts ?? 0) > 0)
   if (played.length === 0) return null
   const totalStrokes = played.reduce(
     (s, h) => s + h.shots.length + (h.putts ?? 0) + (h.penalties ?? 0),

@@ -21,6 +21,7 @@ import Profile from './pages/Profile'
 import History from './pages/History'
 import Analytics from './pages/Analytics'
 import Friends from './pages/Friends'
+import SettlementHistory from './pages/SettlementHistory'
 import { Toaster } from './components/Toaster'
 
 function AppInner() {
@@ -55,6 +56,7 @@ function App() {
             <Route path="/history" element={<History />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/friends" element={<Friends />} />
+            <Route path="/settlement-history" element={<SettlementHistory />} />
           </Routes>
           <BottomNav />
           <Toaster />

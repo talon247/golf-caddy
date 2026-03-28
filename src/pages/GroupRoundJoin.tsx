@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { saveGroupRoundRecovery } from '../storage'
 
@@ -37,7 +37,10 @@ function mapJoinError(raw: string): JoinError {
 export default function GroupRoundJoin() {
   const { code: urlCode } = useParams<{ code?: string }>()
   const navigate = useNavigate()
-  const [step, setStep] = useState<Step>('code')
+  const location = useLocation()
+  const [step, setStep] = useState<Step>(
+    (location.state as { inLobby?: boolean } | null)?.inLobby ? 'lobby' : 'code'
+  )
   const [code, setCode] = useState<string[]>(
     urlCode ? urlCode.toUpperCase().slice(0, 4).split('').concat(['', '', '', '']).slice(0, 4) : ['', '', '', '']
   )

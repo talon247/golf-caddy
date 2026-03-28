@@ -13,11 +13,11 @@ export async function getFriends(): Promise<Friend[]> {
   if (error) throw error
   if (!Array.isArray(data)) return []
   return (data as Array<Record<string, unknown>>).map(row => ({
-    friendshipId: row.friendship_id as string,
-    friendUserId: row.friend_user_id as string,
-    displayName: row.display_name as string,
+    friendshipId: row.friendshipId as string,
+    friendUserId: row.friendUserId as string,
+    displayName: row.displayName as string,
     username: row.username as string,
-    handicapIndex: (row.handicap_index as number | null) ?? null,
+    handicapIndex: (row.handicapIndex as number | null) ?? null,
   }))
 }
 
@@ -27,39 +27,59 @@ export async function getPendingRequests(): Promise<FriendRequest[]> {
   if (error) throw error
   if (!Array.isArray(data)) return []
   return (data as Array<Record<string, unknown>>).map(row => ({
-    friendshipId: row.friendship_id as string,
-    userId: row.friend_user_id as string,
-    displayName: row.display_name as string,
+    friendshipId: row.friendshipId as string,
+    userId: row.friendUserId as string,
+    displayName: row.displayName as string,
     username: row.username as string,
-    createdAt: row.created_at as string,
+    createdAt: (row.createdAt as string) ?? '',
   }))
 }
 
 // ── Send / respond / remove ────────────────────────────────────────────────
 
 export async function sendFriendRequest(addresseeUsername: string): Promise<void> {
-  const { error } = await supabase.rpc('send_friend_request', {
+  const { data, error } = await supabase.rpc('send_friend_request', {
     p_addressee_username: addresseeUsername,
   })
   if (error) throw error
+  const result = data as { success: boolean; error?: string } | null
+  if (!result?.success) {
+    const code = result?.error ?? 'unknown_error'
+    const messages: Record<string, string> = {
+      unauthenticated: 'You must be signed in to send friend requests.',
+      user_not_found: 'User not found.',
+      self_request: 'You cannot add yourself.',
+      requests_disabled: 'That user is not accepting friend requests.',
+      already_exists: 'Friend request already sent or you are already friends.',
+    }
+    throw new Error(messages[code] ?? `Failed to send friend request (${code})`)
+  }
 }
 
 export async function respondFriendRequest(
   friendshipId: string,
   action: FriendRequestAction,
 ): Promise<void> {
-  const { error } = await supabase.rpc('respond_friend_request', {
+  const { data, error } = await supabase.rpc('respond_friend_request', {
     p_friendship_id: friendshipId,
     p_action: action,
   })
   if (error) throw error
+  const result = data as { success: boolean; error?: string } | null
+  if (!result?.success) {
+    throw new Error(result?.error ?? 'Failed to respond to friend request')
+  }
 }
 
 export async function removeFriend(friendshipId: string): Promise<void> {
-  const { error } = await supabase.rpc('remove_friend', {
+  const { data, error } = await supabase.rpc('remove_friend', {
     p_friendship_id: friendshipId,
   })
   if (error) throw error
+  const result = data as { success: boolean; error?: string } | null
+  if (!result?.success) {
+    throw new Error(result?.error ?? 'Failed to remove friend')
+  }
 }
 
 // ── Search ─────────────────────────────────────────────────────────────────
@@ -67,13 +87,17 @@ export async function removeFriend(friendshipId: string): Promise<void> {
 export async function searchUsers(query: string): Promise<FriendSearchResult[]> {
   const { data, error } = await supabase.rpc('search_users', { p_query: query })
   if (error) throw error
-  if (!Array.isArray(data)) return []
+  if (!Array.isArray(data)) {
+    const result = data as { success?: boolean; error?: string } | null
+    if (result?.error) throw new Error(result.error)
+    return []
+  }
   return (data as Array<Record<string, unknown>>).map(row => ({
-    userId: row.user_id as string,
-    displayName: row.display_name as string,
+    userId: row.userId as string,
+    displayName: row.displayName as string,
     username: row.username as string,
-    isFriend: row.is_friend as boolean,
-    hasPendingRequest: row.has_pending_request as boolean,
+    isFriend: row.isFriend as boolean,
+    hasPendingRequest: row.hasPendingRequest as boolean,
   }))
 }
 

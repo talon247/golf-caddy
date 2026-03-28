@@ -120,6 +120,8 @@ export interface SideGameConfig {
   nassauStakeOverall: number | null
   pressEnabled: boolean
   pressTriggerThreshold: number
+  /** Set to true once the first score is entered — config becomes read-only */
+  locked?: boolean
 }
 
 // ── Multiplayer / Group Round ──────────────────────────────────────────────
@@ -189,6 +191,8 @@ export interface PresenceState {
   maxPlayers: number
   joinable: boolean
   updatedAt: string
+  /** Set to true once side game config is received/ready for this player */
+  side_game_ready?: boolean
 }
 
 export interface FriendRoundInfo {

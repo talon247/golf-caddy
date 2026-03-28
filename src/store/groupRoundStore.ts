@@ -10,9 +10,12 @@ interface GroupRoundStore {
   currentPlayer: GroupRoundPlayer | null
   players: GroupRoundPlayer[]
   sideGameConfig: SideGameConfig | null
+  /** True once the first score is entered — side game config becomes read-only */
+  sideGameConfigLocked: boolean
 
   setGroupRound: (round: GroupRound) => void
   setSideGameConfig: (config: SideGameConfig | null) => void
+  lockSideGameConfig: () => void
   setStatus: (status: GroupRoundStatus) => void
   setError: (error: string | null) => void
   // Host flow: add/remove single player from presence; setPlayers syncs all at once
@@ -33,10 +36,16 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
   currentPlayer: null,
   players: [],
   sideGameConfig: null,
+  sideGameConfigLocked: false,
 
   setGroupRound: (round) => set({ groupRound: round, status: 'waiting', error: null }),
 
-  setSideGameConfig: (config) => set({ sideGameConfig: config }),
+  setSideGameConfig: (config) => set({ sideGameConfig: config, sideGameConfigLocked: config?.locked ?? false }),
+
+  lockSideGameConfig: () => set((state) => ({
+    sideGameConfigLocked: true,
+    sideGameConfig: state.sideGameConfig ? { ...state.sideGameConfig, locked: true } : null,
+  })),
 
   setStatus: (status) => set({ status }),
 
@@ -81,7 +90,7 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
 
   setCurrentPlayer: (player) => set({ currentPlayer: player }),
 
-  clearGroupRound: () => set({ groupRound: null, currentPlayer: null, players: [], status: 'idle', error: null }),
+  clearGroupRound: () => set({ groupRound: null, currentPlayer: null, players: [], status: 'idle', error: null, sideGameConfig: null, sideGameConfigLocked: false }),
 
-  reset: () => set({ groupRound: null, status: 'idle', error: null, currentPlayer: null, players: [] }),
+  reset: () => set({ groupRound: null, status: 'idle', error: null, currentPlayer: null, players: [], sideGameConfig: null, sideGameConfigLocked: false }),
 }))
