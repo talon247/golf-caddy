@@ -43,6 +43,7 @@ export default function History() {
   const [loading, setLoading] = useState(false)
   const [mergedRounds, setMergedRounds] = useState<Round[]>([])
   const [filter, setFilter] = useState<HoleFilter>('all')
+  const [visibleCount, setVisibleCount] = useState<number>(20)
 
   useEffect(() => {
     let cancelled = false
@@ -86,11 +87,23 @@ export default function History() {
     return () => { cancelled = true }
   }, [isAuthenticated, userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const allCount = mergedRounds.length
+  const count18 = mergedRounds.filter(r => r.holeCount === 18).length
+  const count9 = mergedRounds.filter(r => r.holeCount === 9).length
+
   const filteredRounds = mergedRounds.filter(r => {
     if (filter === '18') return r.holeCount === 18
     if (filter === '9') return r.holeCount === 9
     return true
   })
+
+  const visibleRounds = filteredRounds.slice(0, visibleCount)
+  const hasMore = visibleCount < filteredRounds.length
+
+  function handleFilterChange(newFilter: HoleFilter) {
+    setFilter(newFilter)
+    setVisibleCount(20)
+  }
 
   function handleRowTap(round: Round) {
     console.log('[History] tapped round:', round.id)
@@ -126,14 +139,14 @@ export default function History() {
 
         {/* Filter pills */}
         <div className="flex gap-2">
-          <button className={filterBtnClass(filter === 'all')} onClick={() => setFilter('all')}>
-            All
+          <button className={filterBtnClass(filter === 'all')} onClick={() => handleFilterChange('all')}>
+            All ({allCount})
           </button>
-          <button className={filterBtnClass(filter === '18')} onClick={() => setFilter('18')}>
-            18-hole
+          <button className={filterBtnClass(filter === '18')} onClick={() => handleFilterChange('18')}>
+            18-hole ({count18})
           </button>
-          <button className={filterBtnClass(filter === '9')} onClick={() => setFilter('9')}>
-            9-hole
+          <button className={filterBtnClass(filter === '9')} onClick={() => handleFilterChange('9')}>
+            9-hole ({count9})
           </button>
         </div>
       </div>
@@ -174,44 +187,55 @@ export default function History() {
             </div>
           </div>
         ) : (
-          filteredRounds.map(round => {
-            const vsParResult = computeScoreVsPar(round)
-            const { label: vsParLabel, className: vsParClass } = formatVsPar(vsParResult)
-            const status = syncStatus[round.id] ?? 'local'
-            const teeLabel = round.teeSet ?? round.tees
+          <>
+            {visibleRounds.map(round => {
+              const vsParResult = computeScoreVsPar(round)
+              const { label: vsParLabel, className: vsParClass } = formatVsPar(vsParResult)
+              const status = syncStatus[round.id] ?? 'local'
+              const teeLabel = round.teeSet ?? round.tees
 
-            return (
+              return (
+                <button
+                  key={round.id}
+                  onClick={() => handleRowTap(round)}
+                  className="w-full text-left bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-[#e5e1d8] active:scale-[0.98] transition-transform"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Left: date + course */}
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold text-[#6b6b6b] mb-0.5">
+                        {formatDate(round.completedAt ?? round.startedAt)}
+                      </span>
+                      <span className="text-[#1a1a1a] font-bold text-sm truncate">
+                        {round.courseName}
+                      </span>
+                      <span className="text-xs text-[#6b6b6b] mt-0.5">
+                        {round.holeCount}H · {teeLabel}
+                      </span>
+                    </div>
+
+                    {/* Right: score + sync */}
+                    <div className="flex flex-col items-end shrink-0 gap-1">
+                      <span className={`text-lg ${vsParClass}`}>{vsParLabel}</span>
+                      <SyncIndicator
+                        status={status}
+                        onRetry={status === 'error' ? () => handleRetry(round.id) : undefined}
+                      />
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+
+            {hasMore && (
               <button
-                key={round.id}
-                onClick={() => handleRowTap(round)}
-                className="w-full text-left bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-[#e5e1d8] active:scale-[0.98] transition-transform"
+                onClick={() => setVisibleCount(c => c + 20)}
+                className="w-full py-3 text-[#2d5a27] font-semibold text-sm border border-[#e5e1d8] rounded-2xl bg-white active:scale-[0.98] transition-transform mt-1"
               >
-                <div className="flex items-center justify-between gap-3">
-                  {/* Left: date + course */}
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-semibold text-[#6b6b6b] mb-0.5">
-                      {formatDate(round.completedAt ?? round.startedAt)}
-                    </span>
-                    <span className="text-[#1a1a1a] font-bold text-sm truncate">
-                      {round.courseName}
-                    </span>
-                    <span className="text-xs text-[#6b6b6b] mt-0.5">
-                      {round.holeCount}H · {teeLabel}
-                    </span>
-                  </div>
-
-                  {/* Right: score + sync */}
-                  <div className="flex flex-col items-end shrink-0 gap-1">
-                    <span className={`text-lg ${vsParClass}`}>{vsParLabel}</span>
-                    <SyncIndicator
-                      status={status}
-                      onRetry={status === 'error' ? () => handleRetry(round.id) : undefined}
-                    />
-                  </div>
-                </div>
+                Load more ({filteredRounds.length - visibleCount} remaining)
               </button>
-            )
-          })
+            )}
+          </>
         )}
       </div>
     </main>

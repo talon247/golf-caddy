@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { useHandicapEstimate } from '../hooks/useHandicapEstimate'
+import { RestoreRoundBanner } from '../components/RestoreRoundBanner'
+import { fetchActiveRound } from '../lib/sync'
 
 const DISCLAIMER_KEY = 'gc-handicap-disclaimer-dismissed'
 
@@ -82,16 +84,52 @@ function scoreDiff(strokes: number, par: number): string {
 
 export default function Home() {
   const navigate = useNavigate()
+  const location = useLocation()
   const rounds = useAppStore(s => s.rounds)
   const activeRoundId = useAppStore(s => s.activeRoundId)
+  const isAuthenticated = useAppStore(s => s.isAuthenticated)
+  const userId = useAppStore(s => s.userId)
+  const addRound = useAppStore(s => s.addRound)
+  const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
+  const abandonRound = useAppStore(s => s.abandonRound)
   const bag = useAppStore(s => s.clubBag)
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
+
+  // Cross-device restore: fetch active round from server on mount
+  useEffect(() => {
+    if (!isAuthenticated || !userId) return
+    let cancelled = false
+    fetchActiveRound(userId).then(remoteRound => {
+      if (cancelled || !remoteRound) return
+      const alreadyInStore = rounds.some(r => r.id === remoteRound.id)
+      if (!alreadyInStore) {
+        addRound(remoteRound)
+        setActiveRoundId(remoteRound.id)
+      }
+    }).catch(err => console.error('[Home] fetchActiveRound failed:', err))
+    return () => { cancelled = true }
+  }, [isAuthenticated, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isOnRoundRoute = location.pathname === '/round'
+
+  // The in-progress (not completed) active round
+  const inProgressRound = rounds.find(r => r.id === activeRoundId && !r.completedAt)
 
   const activeRound = rounds.find(r => r.id === activeRoundId)
   const pastRounds = rounds.filter(r => r.completedAt)
 
   return (
-    <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full">
+    <main className="flex flex-col flex-1 max-w-lg mx-auto w-full">
+      {/* Restore banner — show when there's an in-progress round and we're NOT on /round */}
+      {inProgressRound && !isOnRoundRoute && (
+        <RestoreRoundBanner
+          round={inProgressRound}
+          onResume={() => navigate('/round')}
+          onDismiss={() => abandonRound(inProgressRound.id)}
+        />
+      )}
+
+      <div className="flex flex-col flex-1 p-6 gap-6">
       {/* Hero */}
       <div className="text-center pt-4">
         <div className="text-5xl mb-2">⛳</div>
@@ -230,6 +268,7 @@ export default function Home() {
         >
           👤 Profile
         </Link>
+      </div>
       </div>
     </main>
   )

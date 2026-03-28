@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { signOut } from '../lib/auth'
-import { fetchProfile, syncClubs } from '../lib/sync'
+import { fetchProfile, syncClubs, syncRoundToSupabase, markRoundSynced } from '../lib/sync'
 import { AuthModal } from '../components/AuthModal'
 import type { Round } from '../types'
 
@@ -62,9 +62,13 @@ export default function Profile() {
   const setAuthState = useAppStore(s => s.setAuthState)
   const setProfile = useAppStore(s => s.setProfile)
 
+  const storeMarkRoundSynced = useAppStore(s => s.markRoundSynced)
+
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup'>('signin')
   const [signingOut, setSigningOut] = useState(false)
+  const [showSyncBanner, setShowSyncBanner] = useState(false)
+  const [syncingLocal, setSyncingLocal] = useState(false)
 
   // THEA-139: Fetch profile from Supabase on mount (when signed in)
   // THEA-140: Trigger club bag sync once when authenticated
@@ -87,8 +91,40 @@ export default function Profile() {
       console.error('[Profile] syncClubs failed:', err),
     )
 
+    // Show sync banner if user signed in and has local rounds and hasn't declined migration
+    try {
+      const migrationDeclined = localStorage.getItem('migration_declined') === 'true'
+      if (!migrationDeclined) {
+        const unsyncedCount = rounds.filter(
+          r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+        ).length
+        if (unsyncedCount > 0) {
+          setShowSyncBanner(true)
+        }
+      }
+    } catch { /* ignore */ }
+
     return () => { cancelled = true }
   }, [isAuthenticated, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSyncNow() {
+    if (!userId) return
+    setSyncingLocal(true)
+    const unsyncedRounds = rounds.filter(
+      r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+    )
+    for (const round of unsyncedRounds) {
+      try {
+        await syncRoundToSupabase(round, userId)
+        storeMarkRoundSynced(round.id)
+        await markRoundSynced(round.id, userId)
+      } catch (err) {
+        console.error('[Profile] sync round failed:', round.id, err)
+      }
+    }
+    setSyncingLocal(false)
+    setShowSyncBanner(false)
+  }
 
   const stats = computeStats(rounds)
 
@@ -163,9 +199,29 @@ export default function Profile() {
   const handicap = profile?.handicapIndex != null ? profile.handicapIndex.toFixed(1) : '—'
   const homeCourse = profile?.homeCourse ?? null
 
+  const unsyncedCount = rounds.filter(
+    r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+  ).length
+
   return (
     <>
       <main className="flex flex-col flex-1 p-6 gap-6 max-w-lg mx-auto w-full bg-[#f5f0e8]">
+        {/* Post-sign-in sync banner */}
+        {showSyncBanner && unsyncedCount > 0 && (
+          <div className="bg-[#2d5a27]/10 border border-[#2d5a27]/20 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm text-[#2d5a27] font-semibold flex-1">
+              You have {unsyncedCount} local round{unsyncedCount !== 1 ? 's' : ''}. Sync them to your account?
+            </p>
+            <button
+              onClick={handleSyncNow}
+              disabled={syncingLocal}
+              className="bg-[#2d5a27] text-white rounded-xl px-4 py-2 text-sm font-bold active:scale-95 transition-transform disabled:opacity-60 shrink-0"
+            >
+              {syncingLocal ? 'Syncing…' : 'Sync now'}
+            </button>
+          </div>
+        )}
+
         {/* Avatar + name + handicap */}
         <div className="flex flex-col items-center pt-4 gap-3">
           <div className="w-20 h-20 rounded-full bg-[#2d5a27] flex items-center justify-center text-white text-2xl font-black shadow-md">

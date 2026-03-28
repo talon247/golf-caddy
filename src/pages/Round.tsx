@@ -10,6 +10,7 @@ import PuttsInput from '../components/PuttsInput'
 import PenaltiesInput from '../components/PenaltiesInput'
 import FairwayToggle from '../components/FairwayToggle'
 import LiveLeaderboard from '../components/LiveLeaderboard'
+import { syncActiveRound, syncRoundToSupabase } from '../lib/sync'
 
 type Tab = 'round' | 'scorecard' | 'leaderboard'
 
@@ -45,6 +46,8 @@ export default function Round() {
   const navigate = useNavigate()
   const { rounds, activeRoundId, addShot, removeShot, removeLastShot, setHolePar, setPutts, setPenalties, setFairwayHit, completeRound, abandonRound } = useAppStore()
   const bag = useAppStore(s => s.clubBag).sort((a, b) => a.order - b.order)
+  const isAuthenticated = useAppStore(s => s.isAuthenticated)
+  const userId = useAppStore(s => s.userId)
 
   const round = rounds.find(r => r.id === activeRoundId)
   const [currentHole, setCurrentHole] = useState(1)
@@ -93,6 +96,59 @@ export default function Round() {
     broadcastScore(delta)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [strokesForEffect, holeForEffect?.putts, currentHole, groupRound?.id])
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── THEA-144 + THEA-146: Active round background persistence ─────────────
+  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    // Clear any existing interval first (handles sign-out: userId becomes null)
+    if (syncIntervalRef.current !== null) {
+      clearInterval(syncIntervalRef.current)
+      syncIntervalRef.current = null
+    }
+
+    if (!isAuthenticated || !userId || !round || round.completedAt) {
+      return
+    }
+
+    const roundId = round.id
+
+    // Immediate sync on mount / round change
+    void syncActiveRound(roundId, userId)
+
+    // Periodic sync every 5 minutes
+    const intervalId = setInterval(() => {
+      void syncActiveRound(roundId, userId)
+    }, 5 * 60 * 1000)
+    syncIntervalRef.current = intervalId
+
+    // Sync on visibility restored (tab/app comes back to foreground)
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        void syncActiveRound(roundId, userId!)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Best-effort final sync before unload (fire-and-forget)
+    function handleBeforeUnload() {
+      const currentRound = useAppStore.getState().rounds.find(r => r.id === roundId)
+      if (currentRound && userId) {
+        // Fire-and-forget — don't await; keep it fast
+        void syncRoundToSupabase(currentRound, userId, 'active')
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      clearInterval(intervalId)
+      syncIntervalRef.current = null
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.id, userId, isAuthenticated])
   // ─────────────────────────────────────────────────────────────────────────
 
   if (!round) {

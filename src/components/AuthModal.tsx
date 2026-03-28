@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../store'
 import { signIn, signUp, resetPassword } from '../lib/auth'
+import { syncRoundToSupabase, markRoundSynced } from '../lib/sync'
+import { MigrationPrompt } from './MigrationPrompt'
 
 type Tab = 'signin' | 'signup'
 
@@ -31,12 +33,19 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 
 export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
   const setAuthState = useAppStore(s => s.setAuthState)
+  const rounds = useAppStore(s => s.rounds)
+  const storeMarkRoundSynced = useAppStore(s => s.markRoundSynced)
 
   const [tab, setTab] = useState<Tab>(defaultTab)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+
+  // Migration prompt state
+  const [showMigration, setShowMigration] = useState(false)
+  const [migrationUserId, setMigrationUserId] = useState<string | null>(null)
+  const [migrationRoundCount, setMigrationRoundCount] = useState(0)
 
   // Sign In fields
   const [siEmail, setSiEmail] = useState('')
@@ -110,7 +119,19 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
     }
   }, [isOpen, tab])
 
-  if (!isOpen) return null
+  if (!isOpen && !showMigration) return null
+
+  // Migration prompt shown outside normal modal flow
+  if (showMigration) {
+    return (
+      <MigrationPrompt
+        isOpen={showMigration}
+        roundCount={migrationRoundCount}
+        onConfirm={handleMigrationConfirm}
+        onDecline={handleMigrationDecline}
+      />
+    )
+  }
 
   function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
     if (loading) return
@@ -128,6 +149,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
       if (user) {
         setAuthState(user.id, null)
         onClose()
+        // Non-blocking: after sign-in, if local rounds exist and user hasn't declined migration,
+        // the Profile page will show a sync banner (handled in Profile.tsx).
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sign in failed'
@@ -151,7 +174,18 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
       const user = res.data?.user
       if (user) {
         setAuthState(user.id, null)
-        onClose()
+        // Check for unsynced local rounds
+        const unsyncedRounds = rounds.filter(
+          r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+        )
+        if (unsyncedRounds.length > 0) {
+          setMigrationUserId(user.id)
+          setMigrationRoundCount(unsyncedRounds.length)
+          setShowMigration(true)
+          // Don't close modal yet; MigrationPrompt will close it
+        } else {
+          onClose()
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sign up failed'
@@ -163,6 +197,33 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'signin' }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleMigrationConfirm() {
+    if (!migrationUserId) return
+    setShowMigration(false)
+    // Batch sync all unsynced rounds
+    const unsyncedRounds = rounds.filter(
+      r => r.syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+    )
+    for (const round of unsyncedRounds) {
+      try {
+        await syncRoundToSupabase(round, migrationUserId)
+        storeMarkRoundSynced(round.id)
+        await markRoundSynced(round.id, migrationUserId)
+      } catch (err) {
+        console.error('[AuthModal] batch sync failed for round', round.id, err)
+      }
+    }
+    onClose()
+  }
+
+  function handleMigrationDecline() {
+    try {
+      localStorage.setItem('migration_declined', 'true')
+    } catch { /* ignore */ }
+    setShowMigration(false)
+    onClose()
   }
 
   async function handleForgotPassword() {

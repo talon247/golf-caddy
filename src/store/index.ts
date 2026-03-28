@@ -24,6 +24,9 @@ interface StoreState {
   syncStatus: Record<string, 'local' | 'synced' | 'pending' | 'error'>
   syncQueue: SyncQueueItem[]
 
+  // Cache invalidation counter — increments on completeRound so useRounds refetches
+  roundsVersion: number
+
   // Auth actions
   setUserId: (userId: string | null) => void
   setProfile: (profile: UserProfile | null) => void
@@ -87,6 +90,9 @@ export const useAppStore = create<StoreState>((set, get) => ({
   // Sync (persisted)
   syncStatus: initialSyncStatus,
   syncQueue: [],
+
+  // Cache invalidation
+  roundsVersion: 0,
 
   // Auth actions
   setUserId: (userId) => {
@@ -331,7 +337,8 @@ export const useAppStore = create<StoreState>((set, get) => ({
       r.id === roundId ? { ...r, completedAt: now, scoreDifferential } : r,
     )
     const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
-    set({ rounds, activeRoundId })
+    const roundsVersion = get().roundsVersion + 1
+    set({ rounds, activeRoundId, roundsVersion })
     persist({ ...get(), rounds, activeRoundId })
     useGroupRoundStore.getState().clearGroupRound()
     useLeaderboardStore.getState().reset()
