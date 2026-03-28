@@ -307,6 +307,65 @@ export async function syncClubs(userId: string, clubs: Club[]): Promise<void> {
   }
 }
 
+// ── Migration ─────────────────────────────────────────────────────────────
+
+/**
+ * Batch-migrate local rounds to Supabase sequentially.
+ * Called after signup when user confirms migration prompt.
+ */
+export async function migrateLocalRounds(
+  userId: string,
+  rounds: Round[],
+  onProgress?: (current: number, total: number) => void,
+): Promise<{ synced: number; failed: number }> {
+  // Only migrate rounds that are not already synced
+  const toMigrate = rounds.filter(r => r.completedAt != null)
+  const total = toMigrate.length
+  let synced = 0
+  let failed = 0
+
+  for (let i = 0; i < toMigrate.length; i++) {
+    const round = toMigrate[i]
+    onProgress?.(i + 1, total)
+    try {
+      const result = await syncRoundToSupabase(round, userId, 'completed')
+      if (result.success) {
+        synced++
+        // Lazy import store to avoid circular deps
+        const { useAppStore } = await import('../store')
+        useAppStore.getState().markRoundSynced(round.id)
+      } else {
+        failed++
+        const { useAppStore } = await import('../store')
+        useAppStore.getState().markRoundError(round.id)
+      }
+    } catch {
+      failed++
+    }
+  }
+
+  return { synced, failed }
+}
+
+export async function fetchClubs(userId: string): Promise<Club[]> {
+  try {
+    const { data, error } = await supabase
+      .from('clubs')
+      .select('*')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .order('sort_order', { ascending: true })
+    if (error || !data) return []
+    return data.map((c: { id: string; name: string; sort_order: number }) => ({
+      id: c.id,
+      name: c.name,
+      order: c.sort_order,
+    }))
+  } catch {
+    return []
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 async function mapRowToRound(row: {

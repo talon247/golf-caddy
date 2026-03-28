@@ -119,7 +119,7 @@ export default function Home() {
   const pastRounds = rounds.filter(r => r.completedAt)
 
   return (
-    <main className="flex flex-col flex-1 max-w-lg mx-auto w-full">
+    <main className="flex flex-col flex-1 max-w-lg mx-auto w-full pb-20">
       {/* Restore banner — show when there's an in-progress round and we're NOT on /round */}
       {inProgressRound && !isOnRoundRoute && (
         <RestoreRoundBanner
@@ -240,35 +240,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Quick links */}
-      <div className="flex gap-3 mt-auto flex-wrap">
-        <Link
-          to="/bag"
-          className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
-        >
-          🏌️ My Bag
-        </Link>
-        <Link
-          to="/courses"
-          className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
-        >
-          📋 Courses
-        </Link>
-        {activeRound && (
-          <Link
-            to="/setup"
-            className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
-          >
-            + New Round
-          </Link>
-        )}
-        <Link
-          to="/profile"
-          className="flex-1 text-center border-2 border-cream-dark bg-white text-forest py-3 rounded-xl font-semibold touch-target"
-        >
-          👤 Profile
-        </Link>
-      </div>
+
       </div>
     </main>
   )

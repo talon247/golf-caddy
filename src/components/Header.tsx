@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
 import { Share2, Check } from 'lucide-react'
 import { useGroupRoundStore } from '../store/groupRoundStore'
 
@@ -50,35 +49,7 @@ export function Header() {
             </>
           )}
         </button>
-      ) : (
-        <nav className="flex gap-4 text-sm">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
-            }
-          >
-            Home
-          </NavLink>
-          <NavLink
-            to="/bag"
-            className={({ isActive }) =>
-              `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
-            }
-          >
-            Bag
-          </NavLink>
-          <NavLink
-            to="/handicap"
-            className={({ isActive }) =>
-              `touch-target flex items-center px-2 ${isActive ? 'underline' : 'opacity-80 hover:opacity-100'}`
-            }
-          >
-            HCP
-          </NavLink>
-        </nav>
-      )}
+      ) : null}
     </header>
   )
 }

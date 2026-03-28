@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGroupRoundRecovery } from './hooks/useGroupRoundRecovery'
 import { AuthProvider } from './components/AuthProvider'
 import { Header } from './components/Header'
+import { BottomNav } from './components/BottomNav'
 import Home from './pages/Home'
 import Setup from './pages/Setup'
 import Round from './pages/Round'
@@ -18,6 +19,7 @@ import HandicapHistory from './pages/HandicapHistory'
 import ResetPassword from './pages/ResetPassword'
 import Profile from './pages/Profile'
 import History from './pages/History'
+import Analytics from './pages/Analytics'
 
 function AppInner() {
   useGroupRoundRecovery()
@@ -49,7 +51,9 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/history" element={<History />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Routes>
+          <BottomNav />
         </div>
         </AuthProvider>
       </BrowserRouter>

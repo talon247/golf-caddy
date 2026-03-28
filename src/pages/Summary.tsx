@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
+import { SaveRoundBanner } from '../components/SaveRoundBanner'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -25,6 +26,7 @@ export default function Summary() {
   const bag = useAppStore(s => s.clubBag)
   const deleteRound = useAppStore(s => s.deleteRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
+  const isAuthenticated = useAppStore(s => s.isAuthenticated)
 
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   const round = rounds.find(r => r.id === id)
@@ -254,6 +256,8 @@ export default function Summary() {
           Delete
         </button>
       </div>
+
+      {round.completedAt && <SaveRoundBanner roundId={round.id} isAuthenticated={isAuthenticated} />}
     </main>
   )
 }
