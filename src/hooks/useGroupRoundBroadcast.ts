@@ -20,9 +20,10 @@ export function useGroupRoundBroadcast(
   myPlayerId: string,
 ) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-  // Tracks the last score delta we broadcast so we can re-send on channel reconnect.
-  // This ensures guests who join late or whose channel reconnects catch up to current state.
-  const lastBroadcastRef = useRef<ScoreDelta | null>(null)
+  // Tracks all score deltas we broadcast, keyed by hole number.
+  // Storing all holes (not just the last) ensures a reconnecting client re-receives the
+  // full picture, not only the most recently played hole.
+  const allBroadcastsRef = useRef<Map<number, ScoreDelta>>(new Map())
   const updateScore = useLeaderboardStore((s) => s.updateScore)
   const setSideGameConfig = useGroupRoundStore((s) => s.setSideGameConfig)
   const sideGameConfig = useGroupRoundStore((s) => s.sideGameConfig)
@@ -61,15 +62,23 @@ export function useGroupRoundBroadcast(
           void trackPresence({ side_game_ready: true })
         },
       )
-      .subscribe(async () => {
-        // On (re)connect: re-send our last known score so any guests who missed a
-        // broadcast (due to channel reconnect or late join) see the current state.
-        if (lastBroadcastRef.current) {
+      .subscribe(async (status) => {
+        // Only run catch-up logic once the channel is fully connected.
+        // CHANNEL_ERROR / TIMED_OUT fire the same callback but the channel isn't
+        // ready to send yet, so skip those states.
+        if (status !== 'SUBSCRIBED') return
+
+        // On (re)connect: re-send ALL previously broadcast hole scores so that
+        // any guest who missed one or more holes gets the complete picture.
+        // We iterate a Map<holeNumber, ScoreDelta> rather than just the last delta
+        // to cover the "guest's phone locked mid-round" scenario where multiple
+        // holes were missed.
+        for (const delta of allBroadcastsRef.current.values()) {
           try {
             await channel.send({
               type: 'broadcast',
               event: 'score',
-              payload: lastBroadcastRef.current,
+              payload: delta,
             })
           } catch {
             // Non-fatal
@@ -126,8 +135,9 @@ export function useGroupRoundBroadcast(
   const broadcastScore = useCallback(
     async (delta: ScoreDelta) => {
       if (!channelRef.current) return
-      // Store delta before sending so the subscribe callback can re-broadcast on reconnect
-      lastBroadcastRef.current = delta
+      // Upsert into per-hole map so the subscribe callback can re-broadcast all
+      // holes on reconnect (not just the most recently played one).
+      allBroadcastsRef.current.set(delta.holeNumber, delta)
       try {
         await channelRef.current.send({
           type: 'broadcast',
