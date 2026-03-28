@@ -47,3 +47,21 @@ export interface AppState {
   rounds: Round[]
   activeRoundId?: string
 }
+
+export interface GroupRoundPlayer {
+  id: string
+  playerName: string
+  presenceKey: string
+  joinedAt: number
+}
+
+export type GroupRoundStatus = 'idle' | 'creating' | 'waiting' | 'starting' | 'error'
+
+export interface GroupRound {
+  id: string
+  roomCode: string
+  hostName: string
+  players: GroupRoundPlayer[]
+  status: GroupRoundStatus
+  createdAt: number
+}

@@ -9,6 +9,7 @@ import RoundUndoC from './pages/RoundUndoC'
 import Summary from './pages/Summary'
 import Bag from './pages/Bag'
 import Courses from './pages/Courses'
+import GroupRoundHost from './pages/GroupRoundHost'
 
 function Header() {
   return (
@@ -53,6 +54,7 @@ function App() {
             <Route path="/summary/:id" element={<Summary />} />
             <Route path="/bag" element={<Bag />} />
             <Route path="/courses" element={<Courses />} />
+            <Route path="/group-round/host" element={<GroupRoundHost />} />
           </Routes>
         </div>
       </BrowserRouter>

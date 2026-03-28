@@ -61,12 +61,20 @@ export default function Home() {
           </button>
         </div>
       ) : (
-        <Link
-          to="/setup"
-          className="flex items-center justify-center bg-gold text-white py-5 rounded-2xl text-xl font-bold shadow-md touch-target"
-        >
-          Start New Round
-        </Link>
+        <div className="flex flex-col gap-3">
+          <Link
+            to="/setup"
+            className="flex items-center justify-center bg-gold text-white py-5 rounded-2xl text-xl font-bold shadow-md touch-target"
+          >
+            Start New Round
+          </Link>
+          <Link
+            to="/group-round/host"
+            className="flex items-center justify-center bg-forest text-cream py-4 rounded-2xl text-base font-bold shadow-md touch-target"
+          >
+            👥 Start Group Round
+          </Link>
+        </div>
       )}
 
       {/* Past rounds */}

@@ -1,7 +1,8 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type RoundStatus = 'active' | 'completed' | 'abandoned'
+export type GroupRoundDbStatus = 'waiting' | 'active' | 'completed'
 
 export interface Database {
   public: {
@@ -29,6 +30,7 @@ export interface Database {
           handicap_index?: number | null
           updated_at?: string
         }
+        Relationships: []
       }
       clubs: {
         Row: {
@@ -55,6 +57,7 @@ export interface Database {
           deleted_at?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       courses: {
         Row: {
@@ -87,6 +90,7 @@ export interface Database {
           slope_rating?: number | null
           updated_at?: string
         }
+        Relationships: []
       }
       rounds: {
         Row: {
@@ -130,6 +134,7 @@ export interface Database {
           deleted_at?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       holes: {
         Row: {
@@ -160,6 +165,7 @@ export interface Database {
           fairway_hit?: boolean | null
           updated_at?: string
         }
+        Relationships: []
       }
       shots: {
         Row: {
@@ -189,12 +195,58 @@ export interface Database {
           club_name?: string | null
           is_putt?: boolean
         }
+        Relationships: []
+      }
+      group_rounds: {
+        Row: {
+          id: string
+          room_code: string
+          host_name: string
+          status: GroupRoundDbStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          room_code: string
+          host_name: string
+          status?: GroupRoundDbStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: GroupRoundDbStatus
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      group_round_players: {
+        Row: {
+          id: string
+          group_round_id: string
+          player_name: string
+          presence_key: string | null
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          group_round_id: string
+          player_name: string
+          presence_key?: string | null
+          joined_at?: string
+        }
+        Update: {
+          player_name?: string
+          presence_key?: string | null
+        }
+        Relationships: []
       }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: {
       round_status: RoundStatus
+      group_round_status: GroupRoundDbStatus
     }
   }
 }
