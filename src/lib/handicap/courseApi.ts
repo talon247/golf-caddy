@@ -55,7 +55,7 @@ export async function searchCourses(
   if (!apiKey) return []
   if (query.trim().length < 2) return []
 
-  const url = `${BASE_URL}/courses?search=${encodeURIComponent(query.trim())}`
+  const url = `${BASE_URL}/search?search_query=${encodeURIComponent(query.trim())}`
   const res = await fetch(url, {
     headers: { Authorization: `Key ${apiKey}` },
     signal,
@@ -92,3 +92,4 @@ export async function getCourseDetails(
   // API wraps response in { course: ... }
   return ('course' in data && data.course) ? data.course : data as GolfApiCourseDetails
 }
+
