@@ -5,6 +5,7 @@ import { useHandicapEstimate } from '../hooks/useHandicapEstimate'
 import { RestoreRoundBanner } from '../components/RestoreRoundBanner'
 import FriendsPlayingCard from '../components/FriendsPlayingCard'
 import { fetchActiveRound } from '../lib/sync'
+import { loadAbandonedRoundIds } from '../storage'
 
 const DISCLAIMER_KEY = 'gc-handicap-disclaimer-dismissed'
 
@@ -102,6 +103,10 @@ export default function Home() {
     let cancelled = false
     fetchActiveRound(userId).then(remoteRound => {
       if (cancelled || !remoteRound) return
+      // Don't restore a round the user explicitly discarded on this device.
+      // abandonRound() writes the ID to localStorage immediately, so this guard
+      // survives page refreshes even if the Supabase update hasn't propagated yet.
+      if (loadAbandonedRoundIds().has(remoteRound.id)) return
       // Read fresh store state (not stale closure) so a local abandon that raced
       // with this fetch doesn't get overridden.
       const currentRounds = useAppStore.getState().rounds

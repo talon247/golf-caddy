@@ -95,6 +95,33 @@ export function saveState(state: PersistedState): void {
   }
 }
 
+// ── Abandoned Round IDs ───────────────────────────────────────────────────
+// Persisted separately so a refresh can't re-add a round the user discarded,
+// even if the fire-and-forget Supabase update hasn't propagated yet.
+
+const ABANDONED_KEY = 'golf-caddy-abandoned-rounds'
+
+export function loadAbandonedRoundIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(ABANDONED_KEY)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw)
+    return new Set(Array.isArray(parsed) ? (parsed as string[]) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+export function addAbandonedRoundId(roundId: string): void {
+  try {
+    const ids = loadAbandonedRoundIds()
+    ids.add(roundId)
+    localStorage.setItem(ABANDONED_KEY, JSON.stringify([...ids]))
+  } catch {
+    // Storage unavailable — silently ignore
+  }
+}
+
 const COURSES_KEY = 'golf-caddy-courses'
 
 export function loadCourses(): Course[] {
