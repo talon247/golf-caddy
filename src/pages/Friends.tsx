@@ -5,6 +5,7 @@ import { useFriendsStore } from '../store/friendsStore'
 import { FriendListItem } from '../components/FriendListItem'
 import { UsernameSetup } from '../components/UsernameSetup'
 import { AuthModal } from '../components/AuthModal'
+import { fetchProfile } from '../lib/sync'
 import type { FriendSearchResult } from '../types'
 
 type Tab = 'friends' | 'requests' | 'search'
@@ -33,6 +34,7 @@ export default function Friends() {
   const [activeTab, setActiveTab] = useState<Tab>('friends')
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showUsernameSetup, setShowUsernameSetup] = useState(false)
+  const [profileLoaded, setProfileLoaded] = useState(false)
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
@@ -51,11 +53,27 @@ export default function Friends() {
     loadPendingRequests()
   }, [isAuthenticated, loadFriends, loadPendingRequests])
 
-  // Show username setup on first visit if no username yet; close it if username becomes set
+  // Fetch profile from Supabase on mount so we have the latest username state
   useEffect(() => {
-    if (!isAuthenticated || !profile) return
-    setShowUsernameSetup(!profile.username)
-  }, [isAuthenticated, profile])
+    if (!isAuthenticated || !userId) return
+    let cancelled = false
+    if (profile?.username) {
+      setProfileLoaded(true)
+      return
+    }
+    fetchProfile(userId).then(fetched => {
+      if (cancelled) return
+      if (fetched) setProfile(fetched)
+      setProfileLoaded(true)
+    })
+    return () => { cancelled = true }
+  }, [isAuthenticated, userId, profile?.username, setProfile])
+
+  // Show username setup only after profile has been loaded from Supabase and username is still missing
+  useEffect(() => {
+    if (!isAuthenticated || !profileLoaded) return
+    setShowUsernameSetup(!profile?.username)
+  }, [isAuthenticated, profileLoaded, profile?.username])
 
   // Debounced search
   useEffect(() => {

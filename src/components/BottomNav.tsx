@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom"
-import { Home, Clock, BarChart2, User, Users } from "lucide-react"
+import { Flag, Clock, BarChart2, User, Users } from "lucide-react"
 import { useAppStore } from "../store"
 import { useFriendsStore } from "../store/friendsStore"
 import { FriendRequestBadge } from "./FriendRequestBadge"
@@ -27,8 +27,8 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#e5e1d8] flex justify-around items-center pb-[env(safe-area-inset-bottom)]">
       <NavLink to="/" end className={({ isActive }) => tabClass(isActive)}>
-        <Home size={22} />
-        <span>Home</span>
+        <Flag size={22} />
+        <span>Play</span>
       </NavLink>
 
       <NavLink to="/history" className={({ isActive }) => tabClass(isActive)}>
