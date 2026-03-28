@@ -56,7 +56,7 @@ export default function GroupRoundJoin() {
       const result = data as { error?: string; status?: string; expiresAt?: string }
       if (result.error === 'not_found') {
         setError('Code not found. Check the code and try again.')
-      } else if (result.status === 'active' || result.status === 'completed') {
+      } else if (result.status === 'active' || result.status === 'completed' || (result.expiresAt && new Date(result.expiresAt) < new Date())) {
         setError('This round has already ended.')
       } else {
         setStep('name')
