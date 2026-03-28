@@ -120,6 +120,7 @@ export default function Friends() {
     try {
       await respondRequest(friendshipId, action)
       if (action === 'accepted') await loadFriends()
+      await loadPendingRequests()
     } catch {
       // error shown via store
     } finally {

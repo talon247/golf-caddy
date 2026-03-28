@@ -26,13 +26,16 @@ export async function getPendingRequests(): Promise<FriendRequest[]> {
   const { data, error } = await supabase.rpc('get_friends', { p_status: 'pending' })
   if (error) throw error
   if (!Array.isArray(data)) return []
-  return (data as Array<Record<string, unknown>>).map(row => ({
-    friendshipId: row.friendshipId as string,
-    userId: row.friendUserId as string,
-    displayName: row.displayName as string,
-    username: row.username as string,
-    createdAt: (row.createdAt as string) ?? '',
-  }))
+  return (data as Array<Record<string, unknown>>)
+    // Only show incoming requests (where current user is the addressee)
+    .filter(row => row.isIncoming === true)
+    .map(row => ({
+      friendshipId: row.friendshipId as string,
+      userId: row.friendUserId as string,
+      displayName: row.displayName as string,
+      username: row.username as string,
+      createdAt: (row.createdAt as string) ?? '',
+    }))
 }
 
 // ── Send / respond / remove ────────────────────────────────────────────────
@@ -67,7 +70,15 @@ export async function respondFriendRequest(
   if (error) throw error
   const result = data as { success: boolean; error?: string } | null
   if (!result?.success) {
-    throw new Error(result?.error ?? 'Failed to respond to friend request')
+    const code = result?.error ?? 'unknown_error'
+    const messages: Record<string, string> = {
+      unauthenticated: 'You must be signed in to respond to friend requests.',
+      invalid_action: 'Invalid action.',
+      not_found: 'Friend request not found. It may have been withdrawn.',
+      not_addressee: 'You can only respond to requests sent to you.',
+      already_responded: 'This request has already been responded to.',
+    }
+    throw new Error(messages[code] ?? `Failed to respond to friend request (${code})`)
   }
 }
 
