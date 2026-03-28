@@ -8,7 +8,7 @@ import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
 import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock } from '../lib/sync'
-import { addToQueue } from '../lib/syncQueue'
+import { addToQueue, getQueue, processSyncQueue } from '../lib/syncQueue'
 import { useToastStore } from './toastStore'
 
 interface StoreState {
@@ -32,6 +32,7 @@ interface StoreState {
   setUserId: (userId: string | null) => void
   setProfile: (profile: UserProfile | null) => void
   setAuthState: (userId: string | null, profile: UserProfile | null) => void
+  reconcileSyncOnAuth: (userId: string) => void
 
   // Sync actions
   markRoundSynced: (roundId: string) => void
@@ -67,6 +68,21 @@ interface StoreState {
 const initial = loadState()
 const initialSyncStatus: Record<string, 'local' | 'synced' | 'pending' | 'error'> =
   initial.syncStatus ?? {}
+
+// Reconcile: rounds present in the persistent sync queue must show as 'pending',
+// not 'local'. This fixes the case where the app crashed mid-sync (syncStatus
+// was lost / never written) while the queue entry survived in localStorage.
+const queuedRoundIds = getQueue().map(i => i.roundId)
+let queueReconciled = false
+for (const roundId of queuedRoundIds) {
+  if (initialSyncStatus[roundId] !== 'synced') {
+    initialSyncStatus[roundId] = 'pending'
+    queueReconciled = true
+  }
+}
+if (queueReconciled) {
+  saveState({ ...initial, syncStatus: initialSyncStatus })
+}
 
 function persist(state: Pick<StoreState, 'clubBag' | 'rounds' | 'activeRoundId' | 'syncStatus'>): void {
   const persistedState: PersistedState = {
@@ -106,6 +122,30 @@ export const useAppStore = create<StoreState>((set, get) => ({
 
   setAuthState: (userId, profile) => {
     set({ userId, profile, isAuthenticated: userId !== null })
+  },
+
+  reconcileSyncOnAuth: (userId) => {
+    const state = get()
+    const updatedStatus = { ...state.syncStatus }
+    let changed = false
+
+    // Completed rounds with no syncStatus entry predate sync tracking — flag as 'local'
+    for (const round of state.rounds) {
+      if (round.completedAt !== undefined && updatedStatus[round.id] === undefined) {
+        updatedStatus[round.id] = 'local'
+        changed = true
+      }
+    }
+
+    if (changed) {
+      set({ syncStatus: updatedStatus })
+      persist({ ...get(), syncStatus: updatedStatus })
+    }
+
+    // Kick off queue processing immediately if we're online
+    if (navigator.onLine) {
+      void processSyncQueue(userId)
+    }
   },
 
   // Sync actions

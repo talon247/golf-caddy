@@ -31,6 +31,7 @@ async function fetchPresenceVisible(userId: string): Promise<boolean> {
 export function AuthProvider({ children }: AuthProviderProps) {
   const { user, loading } = useAuth()
   const setAuthState = useAppStore((s) => s.setAuthState)
+  const reconcileSyncOnAuth = useAppStore((s) => s.reconcileSyncOnAuth)
   const initPresence = usePresenceStore((s) => s.initPresence)
   const teardownPresence = usePresenceStore((s) => s.teardown)
   const [hydrated, setHydrated] = useState(false)
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               'Golfer',
           }
           setAuthState(session.user.id, profile)
+          reconcileSyncOnAuth(session.user.id)
           const presenceVisible = await fetchPresenceVisible(session.user.id)
           initPresence(session.user.id, profile.displayName, presenceVisible)
         } else {
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           'Golfer',
       }
       setAuthState(user.id, profile)
+      reconcileSyncOnAuth(user.id)
       fetchPresenceVisible(user.id).then((presenceVisible) => {
         initPresence(user.id, profile.displayName, presenceVisible)
       })
@@ -82,7 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState(null, null)
       teardownPresence()
     }
-  }, [user, loading, setAuthState, initPresence, teardownPresence])
+  }, [user, loading, setAuthState, reconcileSyncOnAuth, initPresence, teardownPresence])
 
   if (!hydrated) {
     return <LoadingScreen />
