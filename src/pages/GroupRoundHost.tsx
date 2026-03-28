@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useGroupRoundStore } from '../store/groupRoundStore'
 
 function generateRoomCode(): string {
   return String(Math.floor(Math.random() * 10000)).padStart(4, '0')
@@ -10,9 +11,10 @@ export default function GroupRoundHost() {
   const navigate = useNavigate()
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [roomCode, setRoomCode] = useState<string>('')
-  const [] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const createdRef = useRef(false)
+
+  const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
 
   useEffect(() => {
     if (createdRef.current) return
@@ -23,13 +25,22 @@ export default function GroupRoundHost() {
       let attempts = 0
 
       while (attempts < 5) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('group_rounds')
           .insert({ room_code: code, host_name: 'Host' })
           .select('id')
           .single()
 
         if (!error) {
+          if (data?.id) {
+            setGroupRound({
+              id: data.id,
+              roomCode: code,
+              hostUserId: null,
+              status: 'waiting',
+              createdAt: new Date().toISOString(),
+            })
+          }
           setRoomCode(code)
           setState('ready')
           return
@@ -52,14 +63,13 @@ export default function GroupRoundHost() {
       setState('ready')
     }
 
-    create().catch((err) => {
-      console.error('Group round creation error:', err)
+    create().catch(() => {
       // Even on hard error, try local-only mode
       const fallbackCode = generateRoomCode()
       setRoomCode(fallbackCode)
       setState('ready')
     })
-  }, [])
+  }, [setGroupRound])
 
   const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
 
