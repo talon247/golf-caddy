@@ -17,6 +17,7 @@ function buildJoinUrl(roomCode: string): string {
 async function createGroupRoundInDb(
   roomCode: string,
   hostName: string,
+  retries = 3,
 ): Promise<string> {
   const { data, error } = await supabase
     .from('group_rounds')
@@ -24,7 +25,14 @@ async function createGroupRoundInDb(
     .select('id')
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    // Retry with a new code on collision (duplicate room code)
+    if (error.code === '23505' && retries > 0) {
+      const newCode = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+      return createGroupRoundInDb(newCode, hostName, retries - 1)
+    }
+    throw new Error(error.message)
+  }
   return data.id
 }
 
@@ -136,8 +144,10 @@ export default function GroupRoundHost() {
           status: 'waiting',
           createdAt: Date.now(),
         })
-      } catch {
+      } catch (err) {
         if (cancelled) return
+        // Log the actual error for debugging
+        console.error('[GroupRoundHost] Supabase insert failed:', err)
         // Fall back to local-only mode if Supabase is unavailable
         setGroupRound({
           id: crypto.randomUUID(),
@@ -252,7 +262,7 @@ export default function GroupRoundHost() {
     return (
       <main className="flex flex-col flex-1 items-center justify-center p-6 gap-4">
         <p className="text-red-700 font-semibold text-center">
-          {error ?? 'Something went wrong. Please try again.'}
+          {error ?? 'Something went wrong. Please try again. Check browser console for details.'}
         </p>
         <button
           onClick={() => {
@@ -351,4 +361,5 @@ export default function GroupRoundHost() {
     </main>
   )
 }
+
 
