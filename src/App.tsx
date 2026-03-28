@@ -23,6 +23,7 @@ import History from './pages/History'
 import Analytics from './pages/Analytics'
 import Friends from './pages/Friends'
 import SettlementHistory from './pages/SettlementHistory'
+import NotFound from './pages/NotFound'
 import { RouteErrorBoundary } from './components/RouteErrorBoundary'
 import { Toaster } from './components/Toaster'
 
@@ -60,6 +61,7 @@ function App() {
             <Route path="/analytics" element={<RouteErrorBoundary routeName="Analytics"><Analytics /></RouteErrorBoundary>} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/settlement-history" element={<SettlementHistory />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />
           <Toaster />
