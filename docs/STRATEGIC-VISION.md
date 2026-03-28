@@ -321,3 +321,22 @@ Success metric for beta: **50% of beta users log a second round within 7 days.**
 ---
 
 *Strategic vision maintained by PM. Aligned with company goal: [Build the world's best personal assistant and a suite of AI-powered digital products.]*
+
+---
+
+## Phase 4 Feature Addition (Brian, 2026-03-28)
+
+### Remote Rivalry Rounds
+
+Two golfers compete simultaneously on different courses with results normalized by WHS handicap differential.
+
+**Concept:** Challenge a friend to a tee-time-matched round. You play your local course, they play theirs. The app computes each player's net score adjusted for course rating and slope — the same mechanism as WHS handicap differential calculation. Live leaderboard shows who is leading on a level playing field regardless of course difficulty.
+
+**Why it's differentiated:** No golf app supports async/remote head-to-head competition with proper course difficulty normalization. This makes the rivalry meaningful even when friends are in different cities.
+
+**Builds on:**
+- V3: WHS handicap differential (already computed per round)
+- V3: Round sync + friends + presence
+- V4: Side games, rivalry history
+
+**Phase:** 4
