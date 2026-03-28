@@ -98,7 +98,9 @@ export default function Profile() {
       const migrationDeclined = localStorage.getItem('migration_declined') === 'true'
       if (!migrationDeclined) {
         const unsyncedCount = rounds.filter(
-          r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+          r => r.completedAt != null &&
+            syncStatus[r.id] !== 'synced' &&
+            syncStatus[r.id] !== 'pending',
         ).length
         if (unsyncedCount > 0) {
           setShowSyncBanner(true)
@@ -113,18 +115,16 @@ export default function Profile() {
     if (!userId) return
     setSyncingLocal(true)
     const unsyncedRounds = rounds.filter(
-      r => (r as { syncStatus?: string }).syncStatus === 'local' || !(r as { syncStatus?: string }).syncStatus,
+      r => r.completedAt != null &&
+        syncStatus[r.id] !== 'synced' &&
+        syncStatus[r.id] !== 'pending',
     )
-    for (const round of unsyncedRounds) {
-      try {
-        await syncRoundToSupabase(round, userId)
-        storeMarkRoundSynced(round.id)
-      } catch (err) {
-        console.error('[Profile] sync round failed:', round.id, err)
-      }
-    }
+    const { synced, failed } = await migrateLocalRounds(userId, unsyncedRounds)
     setSyncingLocal(false)
     setShowSyncBanner(false)
+    if (failed > 0) {
+      console.warn(`[Profile] sync: ${synced} succeeded, ${failed} failed`)
+    }
   }
 
   function handleUsernameSet(username: string) {
