@@ -39,9 +39,17 @@ jobs:
           DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
-      - name: Notify Discord
+      - name: Notify Discord — Announcements (public)
         continue-on-error: true
         run: |
-          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          MSG=$(git log -1 --pretty=format:"%s" 2>/dev/null || echo "New build")
+          curl -s -X POST "${{ secrets.DISCORD_ANNOUNCEMENTS_WEBHOOK }}" \
             -H "Content-Type: application/json" \
-            -d "{\"content\": \"**Preview Deploy** ✅\nBranch: \`${{ github.ref_name }}\`\nCommit: \`${{ github.sha }}\`\nURL: ${{ steps.deploy.outputs.url }}\"}"
+            -d "{\"content\": \"⛳ **New Build Available**\n$MSG\n${{ steps.deploy.outputs.url }}\"}"
+
+      - name: Notify Discord — Builds (Colony internal)
+        continue-on-error: true
+        run: |
+          curl -s -X POST "${{ secrets.DISCORD_BUILDS_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"${{ steps.deploy.outputs.url }}\"}"
