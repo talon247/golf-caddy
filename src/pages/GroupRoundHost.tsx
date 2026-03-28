@@ -12,6 +12,8 @@ export default function GroupRoundHost() {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [roomCode, setRoomCode] = useState<string>('')
   const [copied, setCopied] = useState(false)
+  const [groupRoundId, setGroupRoundId] = useState<string | null>(null)
+  const [starting, setStarting] = useState(false)
   const createdRef = useRef(false)
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
@@ -32,16 +34,8 @@ export default function GroupRoundHost() {
           .single()
 
         if (!error) {
-          if (data?.id) {
-            setGroupRound({
-              id: data.id,
-              roomCode: code,
-              hostUserId: null,
-              status: 'waiting',
-              createdAt: new Date().toISOString(),
-            })
-          }
           setRoomCode(code)
+          setGroupRoundId((data as { id: string } | null)?.id ?? null)
           setState('ready')
           return
         }
@@ -53,6 +47,7 @@ export default function GroupRoundHost() {
         } else {
           // Fallback: work offline with local-only round
           setRoomCode(code)
+          setGroupRoundId(null)
           setState('ready')
           return
         }
@@ -60,6 +55,7 @@ export default function GroupRoundHost() {
 
       // Last resort: local only
       setRoomCode(code)
+      setGroupRoundId(null)
       setState('ready')
     }
 
@@ -72,6 +68,24 @@ export default function GroupRoundHost() {
   }, [setGroupRound])
 
   const joinUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group-round/join/${roomCode}`
+
+  const handleStart = useCallback(async () => {
+    setStarting(true)
+    try {
+      if (groupRoundId) {
+        await supabase
+          .from('group_rounds')
+          .update({ status: 'active' })
+          .eq('id', groupRoundId)
+      }
+      navigate('/setup')
+    } catch (err) {
+      console.error('Failed to start round:', err)
+      navigate('/setup') // navigate anyway
+    } finally {
+      setStarting(false)
+    }
+  }, [groupRoundId, navigate])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -151,7 +165,8 @@ export default function GroupRoundHost() {
         </button>
         <button
           type="button"
-          onClick={() => navigate('/setup')}
+          onClick={handleStart}
+          disabled={starting}
           className="flex-1 py-3 rounded-xl bg-[#2d5a27] text-white font-semibold touch-target"
         >
           Start My Round
@@ -160,3 +175,4 @@ export default function GroupRoundHost() {
     </main>
   )
 }
+
