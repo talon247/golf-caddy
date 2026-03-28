@@ -118,11 +118,19 @@ function PlayerRow({ player, isHost }: { player: GroupRoundPlayer; isHost?: bool
 
 export default function GroupRoundHost() {
   const navigate = useNavigate()
-  const { groupRound, status, error, setGroupRound, setStatus, setError, setPlayers } =
+  const { groupRound, status, error, setGroupRound, setStatus, setError, setPlayers, clearGroupRound } =
     useGroupRoundStore()
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const hostName = 'Host' // Placeholder until auth is implemented
+
+  // Clear any stale error state from previous session on mount
+  useEffect(() => {
+    if (status === 'error' || status === 'active' || status === 'completed') {
+      clearGroupRound()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Create the group round ──────────────────────────────────────────────
   useEffect(() => {
@@ -144,10 +152,10 @@ export default function GroupRoundHost() {
           status: 'waiting',
           createdAt: Date.now(),
         })
-      } catch (err) {
+      } catch (err: unknown) {
         if (cancelled) return
-        // Log the actual error for debugging
-        console.error('[GroupRoundHost] Supabase insert failed:', err)
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[GroupRoundHost] Supabase insert failed:', msg)
         // Fall back to local-only mode if Supabase is unavailable
         setGroupRound({
           id: crypto.randomUUID(),
@@ -361,5 +369,6 @@ export default function GroupRoundHost() {
     </main>
   )
 }
+
 
 
