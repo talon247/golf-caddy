@@ -1,4 +1,5 @@
 export { useCourseStore } from './courseStore'
+export { useGroupRoundStore } from './groupRoundStore'
 
 import { create } from 'zustand'
 import type { Club, Round, Shot } from '../types'

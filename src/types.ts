@@ -47,3 +47,40 @@ export interface AppState {
   rounds: Round[]
   activeRoundId?: string
 }
+
+// ── Multiplayer / Group Round ──────────────────────────────────────────────
+
+export type GroupRoundStatus = 'waiting' | 'active' | 'completed'
+
+export interface GroupRound {
+  id: string
+  roomCode: string
+  hostUserId: string | null
+  status: GroupRoundStatus
+  expiresAt: string
+  createdAt: string
+}
+
+export interface GroupRoundPlayer {
+  id: string
+  groupRoundId: string
+  userId: string | null
+  displayName: string
+  roundId: string | null
+  joinedAt: string
+}
+
+export type JoinError = 'not_found' | 'expired' | 'full' | 'network'
+
+export interface JoinGroupRoundResult {
+  success: true
+  groupRoundId: string
+  playerId: string
+  roomCode: string
+}
+
+export interface JoinGroupRoundError {
+  success: false
+  error: JoinError
+  message: string
+}
