@@ -14,6 +14,7 @@ export interface Hole {
   par: number
   shots: Shot[]
   putts?: number
+  penalties?: number
   fairwayHit?: boolean
 }
 

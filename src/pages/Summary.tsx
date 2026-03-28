@@ -205,7 +205,7 @@ export default function Summary() {
           </thead>
           <tbody>
             {round.holes.map(h => {
-              const s = h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0)
+              const s = h.shots.filter(shot => !putterIds.has(shot.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
               return (
                 <tr key={h.number} className="border-t border-cream-dark">
                   <td className="px-3 py-2 font-medium">{h.number}</td>

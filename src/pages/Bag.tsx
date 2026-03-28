@@ -1,8 +1,23 @@
 import { useRef, useState } from 'react'
 import { useAppStore } from '../store'
 
+const TEMPLATES = [
+  {
+    name: 'Full 14',
+    clubs: ['Driver', '3W', '5W', '4i', '5i', '6i', '7i', '8i', '9i', 'PW', 'SW', 'LW', 'Putter'],
+  },
+  {
+    name: '9-Club Starter',
+    clubs: ['Driver', '5W', '5i', '7i', '9i', 'PW', 'SW', 'Putter'],
+  },
+  {
+    name: 'Irons Only',
+    clubs: ['5i', '6i', '7i', '8i', '9i', 'PW', 'SW', 'Putter'],
+  },
+] as const
+
 export default function Bag() {
-  const { clubBag, addClub, removeClub, updateClubName, moveClubUp, moveClubDown } = useAppStore()
+  const { clubBag, addClub, removeClub, updateClubName, moveClubUp, moveClubDown, loadTemplate } = useAppStore()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saved, setSaved] = useState(false)
@@ -51,6 +66,24 @@ export default function Bag() {
       <p className="text-warm-gray text-sm mb-5">
         {sorted.length} club{sorted.length !== 1 ? 's' : ''} · tap a name to edit
       </p>
+
+      {clubBag.length <= 2 && (
+        <div className="mb-5 p-4 rounded-xl border border-cream-dark bg-cream">
+          <p className="text-sm font-semibold text-forest mb-3">Start with a template</p>
+          <div className="flex flex-col gap-2">
+            {TEMPLATES.map(t => (
+              <button
+                key={t.name}
+                onClick={() => loadTemplate([...t.clubs])}
+                className="flex items-center justify-between px-4 py-3 rounded-lg bg-white border border-cream-dark hover:border-forest hover:bg-cream-dark transition-colors text-left"
+              >
+                <span className="font-medium text-forest">{t.name}</span>
+                <span className="text-sm text-warm-gray">{t.clubs.length} clubs</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <ul className="flex flex-col gap-2 mb-4">
         {sorted.map((club, idx) => (

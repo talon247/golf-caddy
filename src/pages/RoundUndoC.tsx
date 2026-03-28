@@ -64,7 +64,7 @@ export default function RoundUndoC() {
   const hole = round.holes.find(h => h.number === currentHole)!
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   const nonPutterShots = hole.shots.filter(s => !putterIds.has(s.clubId)).length
-  const strokes = nonPutterShots + (hole.putts ?? 0)
+  const strokes = nonPutterShots + (hole.putts ?? 0) + (hole.penalties ?? 0)
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
 
@@ -74,7 +74,7 @@ export default function RoundUndoC() {
       : undefined
 
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
@@ -415,7 +415,7 @@ export default function RoundUndoC() {
               </thead>
               <tbody>
                 {round.holes.map(h => {
-                  const s = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0)
+                  const s = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
                   return (
                     <tr
                       key={h.number}

@@ -18,6 +18,7 @@ interface StoreState {
   updateClubName: (id: string, name: string) => void
   moveClubUp: (id: string) => void
   moveClubDown: (id: string) => void
+  loadTemplate: (names: string[]) => void
 
   // Round actions
   setActiveRoundId: (id: string | undefined) => void
@@ -28,6 +29,7 @@ interface StoreState {
   removeShot: (roundId: string, holeNumber: number, shotIndex: number) => void
   setHolePar: (roundId: string, holeNumber: number, par: number) => void
   setPutts: (roundId: string, holeNumber: number, putts: number) => void
+  setPenalties: (roundId: string, holeNumber: number, penalties: number) => void
   setFairwayHit: (roundId: string, holeNumber: number, hit: boolean) => void
   completeRound: (roundId: string) => void
   deleteRound: (roundId: string) => void
@@ -80,6 +82,12 @@ export const useAppStore = create<StoreState>((set, get) => ({
       if (c.id === current.id) return { ...c, order: above.order }
       return c
     }).sort((a, b) => a.order - b.order)
+    set({ clubBag: clubs })
+    persist({ ...get(), clubBag: clubs })
+  },
+
+  loadTemplate: (names) => {
+    const clubs: Club[] = names.map((name, i) => ({ id: crypto.randomUUID(), name, order: i }))
     set({ clubBag: clubs })
     persist({ ...get(), clubBag: clubs })
   },
@@ -183,6 +191,20 @@ export const useAppStore = create<StoreState>((set, get) => ({
         ...r,
         holes: r.holes.map(h =>
           h.number === holeNumber ? { ...h, putts } : h,
+        ),
+      }
+    })
+    set({ rounds })
+    persist({ ...get(), rounds })
+  },
+
+  setPenalties: (roundId, holeNumber, penalties) => {
+    const rounds = get().rounds.map(r => {
+      if (r.id !== roundId) return r
+      return {
+        ...r,
+        holes: r.holes.map(h =>
+          h.number === holeNumber ? { ...h, penalties } : h,
         ),
       }
     })

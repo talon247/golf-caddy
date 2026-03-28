@@ -7,6 +7,7 @@ import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useGroupRoundBroadcast } from '../hooks/useGroupRoundBroadcast'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
+import PenaltiesInput from '../components/PenaltiesInput'
 import FairwayToggle from '../components/FairwayToggle'
 import LiveLeaderboard from '../components/LiveLeaderboard'
 
@@ -42,7 +43,7 @@ function scoreColor(strokes: number, par: number): string {
 
 export default function Round() {
   const navigate = useNavigate()
-  const { rounds, activeRoundId, addShot, removeShot, removeLastShot, setHolePar, setPutts, setFairwayHit, completeRound, abandonRound } = useAppStore()
+  const { rounds, activeRoundId, addShot, removeShot, removeLastShot, setHolePar, setPutts, setPenalties, setFairwayHit, completeRound, abandonRound } = useAppStore()
   const bag = useAppStore(s => s.clubBag).sort((a, b) => a.order - b.order)
 
   const round = rounds.find(r => r.id === activeRoundId)
@@ -63,7 +64,7 @@ export default function Round() {
   const nonPutterShotsForEffect = holeForEffect
     ? holeForEffect.shots.filter(s => !putterIds.has(s.clubId)).length
     : 0
-  const strokesForEffect = nonPutterShotsForEffect + (holeForEffect?.putts ?? 0)
+  const strokesForEffect = nonPutterShotsForEffect + (holeForEffect?.putts ?? 0) + (holeForEffect?.penalties ?? 0)
 
   const prevBroadcastRef = useRef<{ holeNumber: number; strokes: number; putts: number } | null>(null)
   useEffect(() => {
@@ -111,7 +112,7 @@ export default function Round() {
   // round is non-null below — compute derived values for rendering.
   const hole = round.holes.find(h => h.number === currentHole)!
   const nonPutterShots = hole.shots.filter(s => !putterIds.has(s.clubId)).length
-  const strokes = nonPutterShots + (hole.putts ?? 0)
+  const strokes = nonPutterShots + (hole.putts ?? 0) + (hole.penalties ?? 0)
   const totalHoles = round.holeCount
   const parLocked = hole.shots.length > 0
 
@@ -123,7 +124,7 @@ export default function Round() {
 
   // Running totals
   const playedHoles = round.holes.filter(h => h.shots.length > 0)
-  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0), 0)
+  const totalStrokes = playedHoles.reduce((sum, h) => sum + h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0), 0)
   const totalPar = playedHoles.reduce((sum, h) => sum + h.par, 0)
   const runningDiff = totalStrokes - totalPar
 
@@ -382,6 +383,10 @@ export default function Round() {
             <PuttsInput
               value={hole.putts}
               onChange={(putts) => setPutts(round!.id, currentHole, putts)}
+            />
+            <PenaltiesInput
+              value={hole.penalties}
+              onChange={(penalties) => setPenalties(round!.id, currentHole, penalties)}
             />
             {hole.par >= 4 && (
               <FairwayToggle
