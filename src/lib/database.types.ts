@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type RoundStatus = 'active' | 'completed' | 'abandoned'
@@ -99,9 +99,14 @@ export interface Database {
           course_id: string | null
           course_name: string
           tees: string | null
+          tee_set: string | null
           player_name: string
           hole_count: 9 | 18
           status: RoundStatus
+          course_rating: number | null
+          slope_rating: number | null
+          adjusted_gross_score: number | null
+          score_differential: number | null
           started_at: string
           completed_at: string | null
           deleted_at: string | null
@@ -114,9 +119,14 @@ export interface Database {
           course_id?: string | null
           course_name: string
           tees?: string | null
+          tee_set?: string | null
           player_name: string
           hole_count: 9 | 18
           status?: RoundStatus
+          course_rating?: number | null
+          slope_rating?: number | null
+          adjusted_gross_score?: number | null
+          score_differential?: number | null
           started_at?: string
           completed_at?: string | null
           deleted_at?: string | null
@@ -127,9 +137,14 @@ export interface Database {
           course_id?: string | null
           course_name?: string
           tees?: string | null
+          tee_set?: string | null
           player_name?: string
           hole_count?: 9 | 18
           status?: RoundStatus
+          course_rating?: number | null
+          slope_rating?: number | null
+          adjusted_gross_score?: number | null
+          score_differential?: number | null
           completed_at?: string | null
           deleted_at?: string | null
           updated_at?: string
