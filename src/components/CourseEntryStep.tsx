@@ -4,6 +4,9 @@ import type { GolfApiCourse, TeeSet } from '../lib/handicap/courseApi'
 
 export interface CourseEntryValue {
   teeSet: string
+  courseName?: string
+  pars?: number[]
+  holeCount?: 9 | 18
   courseRating: number | null
   slopeRating: number | null
   skipped: boolean
@@ -23,6 +26,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GolfApiCourse[]>([])
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
+  const [selectedCourseName, setSelectedCourseName] = useState<string | undefined>(undefined)
   const [teeSets, setTeeSets] = useState<TeeSet[]>([])
   const [searching, setSearching] = useState(false)
   const [loadingDetails, setLoadingDetails] = useState(false)
@@ -73,6 +77,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
 
   async function selectCourse(course: GolfApiCourse) {
     setSelectedCourseId(course.id)
+    setSelectedCourseName(course.club_name)
     setTeeSets([])
     setLoadingDetails(true)
 
@@ -94,12 +99,17 @@ export default function CourseEntryStep({ value, onChange }: Props) {
     }
   }
 
-  function selectTeeSet(ts: TeeSet) {
+  function selectTeeSet(ts: TeeSet, courseName?: string) {
+    const holeCount = ts.number_of_holes === 9 ? 9 : 18
+    const pars = ts.holes?.map(h => h.par ?? 4) ?? Array(holeCount).fill(4)
     onChange({
       teeSet: ts.tee_name,
       courseRating: ts.course_rating,
       slopeRating: ts.slope_rating,
       skipped: false,
+      courseName,
+      pars: pars.slice(0, holeCount),
+      holeCount,
     })
   }
 
@@ -222,7 +232,7 @@ export default function CourseEntryStep({ value, onChange }: Props) {
                       type="button"
                       role="option"
                       aria-selected={value.teeSet === ts.tee_name}
-                      onClick={() => selectTeeSet(ts)}
+                      onClick={() => selectTeeSet(ts, selectedCourseName)}
                       className={`w-full text-left px-4 py-3 transition-colors min-h-[48px] flex items-center justify-between ${
                         value.teeSet === ts.tee_name
                           ? 'bg-[#eaf4e8]'

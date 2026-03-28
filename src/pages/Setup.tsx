@@ -27,6 +27,20 @@ export default function Setup() {
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
   const [courseEntry, setCourseEntry] = useState<CourseEntryValue>(DEFAULT_COURSE_ENTRY)
+
+  function handleCourseEntryChange(entry: CourseEntryValue) {
+    setCourseEntry(entry)
+    // Auto-fill course name from search result
+    if (entry.courseName) setCourseName(entry.courseName)
+    // Auto-fill pars from API hole data
+    if (entry.pars && entry.pars.length > 0) {
+      const newPars = Array(18).fill(4)
+      entry.pars.forEach((p, i) => { newPars[i] = p })
+      setPars(newPars)
+    }
+    // Auto-set hole count from tee set
+    if (entry.holeCount) setHoleCount(entry.holeCount)
+  }
   const [showBagWarning, setShowBagWarning] = useState(false)
   const [showAbandonWarning, setShowAbandonWarning] = useState(false)
 
@@ -194,7 +208,7 @@ export default function Setup() {
 
           {/* Course Rating & Slope entry */}
           <div className="border-t border-[#e5e1d8] pt-5">
-            <CourseEntryStep value={courseEntry} onChange={setCourseEntry} />
+            <CourseEntryStep value={courseEntry} onChange={handleCourseEntryChange} />
           </div>
 
           {/* Holes */}
