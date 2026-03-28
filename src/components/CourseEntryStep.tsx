@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { searchCourses, getCourseDetails } from '../lib/handicap/courseApi'
 import type { GolfApiCourse, TeeSet } from '../lib/handicap/courseApi'
+import type { Course } from '../types'
 
 export interface CourseEntryValue {
   teeSet: string
@@ -15,15 +16,18 @@ export interface CourseEntryValue {
 interface Props {
   value: CourseEntryValue
   onChange: (value: CourseEntryValue) => void
-  onModeChange?: (mode: 'search' | 'manual') => void
+  onModeChange?: (mode: 'favorites' | 'search' | 'manual') => void
+  savedCourses?: Course[]
+  onSelectSavedCourse?: (id: string) => void
 }
 
-type Mode = 'search' | 'manual'
+type Mode = 'favorites' | 'search' | 'manual'
 
 const SKIP_VALUE: CourseEntryValue = { teeSet: '', courseRating: null, slopeRating: null, skipped: true }
 
-export default function CourseEntryStep({ value, onChange, onModeChange }: Props) {
-  const [mode, setMode] = useState<Mode>('search')
+export default function CourseEntryStep({ value, onChange, onModeChange, savedCourses = [], onSelectSavedCourse }: Props) {
+  const initialMode: Mode = savedCourses.length > 0 ? 'favorites' : 'search'
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GolfApiCourse[]>([])
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
@@ -37,6 +41,7 @@ export default function CourseEntryStep({ value, onChange, onModeChange }: Props
   const [manualSlope, setManualSlope] = useState<string>(value.slopeRating?.toString() ?? '')
   const [manualTeeSet, setManualTeeSet] = useState<string>(value.teeSet ?? '')
   const [showSkipTooltip, setShowSkipTooltip] = useState(false)
+  const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -131,6 +136,16 @@ export default function CourseEntryStep({ value, onChange, onModeChange }: Props
     onChange(SKIP_VALUE)
   }
 
+  function switchMode(next: Mode) {
+    setMode(next)
+    onModeChange?.(next)
+  }
+
+  function handleSelectSaved(id: string) {
+    setSelectedSavedId(id)
+    onSelectSavedCourse?.(id)
+  }
+
   const hasSelection = !value.skipped && (value.courseRating !== null || value.slopeRating !== null)
 
   return (
@@ -147,32 +162,76 @@ export default function CourseEntryStep({ value, onChange, onModeChange }: Props
         )}
       </div>
 
-      {/* Mode toggle */}
+      {/* 3-tab ribbon: Favorites | Search | Manual */}
       <div className="flex gap-2">
+        {savedCourses.length > 0 && (
+          <button
+            type="button"
+            onClick={() => switchMode('favorites')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors min-h-[40px] ${
+              mode === 'favorites'
+                ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
+                : 'bg-white text-[#2d5a27] border-[#e5e1d8]'
+            }`}
+          >
+            Favorites
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => { setMode('search'); setSelectedCourseId(null); setTeeSets([]); onModeChange?.('search') }}
+          onClick={() => { switchMode('search'); setSelectedCourseId(null); setTeeSets([]) }}
           className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors min-h-[40px] ${
             mode === 'search'
               ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
               : 'bg-white text-[#2d5a27] border-[#e5e1d8]'
           }`}
         >
-          Search Course
+          Search
         </button>
         <button
           type="button"
-          onClick={() => { setMode('manual'); onModeChange?.('manual') }}
+          onClick={() => switchMode('manual')}
           className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors min-h-[40px] ${
             mode === 'manual'
               ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
               : 'bg-white text-[#2d5a27] border-[#e5e1d8]'
           }`}
         >
-          Enter Manually
+          Manual
         </button>
       </div>
 
+      {/* Favorites tab */}
+      {mode === 'favorites' && (
+        <div className="flex flex-col gap-2">
+          {savedCourses.length === 0 ? (
+            <p className="text-sm text-gray-400 px-1">No saved courses yet.</p>
+          ) : (
+            <ul className="border border-[#e5e1d8] rounded-xl overflow-hidden divide-y divide-[#e5e1d8] bg-white" role="listbox" aria-label="Saved courses">
+              {savedCourses.map(course => (
+                <li key={course.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selectedSavedId === course.id}
+                    onClick={() => handleSelectSaved(course.id)}
+                    className={`w-full text-left px-4 py-3 transition-colors min-h-[48px] flex items-center justify-between ${
+                      selectedSavedId === course.id
+                        ? 'bg-[#eaf4e8]'
+                        : 'hover:bg-[#f5f0e8] active:bg-[#eae6dd]'
+                    }`}
+                  >
+                    <span className="font-semibold text-sm text-[#1a1a1a]">{course.name}</span>
+                    <span className="text-xs text-gray-500">{course.holes.length} holes</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Search tab */}
       {mode === 'search' && (
         <div className="flex flex-col gap-3">
           <div className="relative">
@@ -256,6 +315,7 @@ export default function CourseEntryStep({ value, onChange, onModeChange }: Props
         </div>
       )}
 
+      {/* Manual tab */}
       {mode === 'manual' && (
         <div className="flex flex-col gap-4">
           <div>
@@ -367,4 +427,3 @@ export default function CourseEntryStep({ value, onChange, onModeChange }: Props
     </div>
   )
 }
-

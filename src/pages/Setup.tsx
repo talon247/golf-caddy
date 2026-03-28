@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore, useCourseStore } from '../store'
 import ConfirmModal from '../components/ConfirmModal'
@@ -17,17 +17,23 @@ const DEFAULT_COURSE_ENTRY: CourseEntryValue = {
 
 export default function Setup() {
   const navigate = useNavigate()
-  const { addRound, setActiveRoundId, completeRound, activeRoundId, clubBag } = useAppStore()
+  const { addRound, setActiveRoundId, completeRound, activeRoundId, clubBag, profile, isAuthenticated } = useAppStore()
   const { courses } = useCourseStore()
 
   const [courseName, setCourseName] = useState('')
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [playerName, setPlayerName] = useState('')
   const [tees, setTees] = useState<string>('White')
-  const [courseEntryMode, setCourseEntryMode] = useState<'search' | 'manual'>('search')
+  const [courseEntryMode, setCourseEntryMode] = useState<'favorites' | 'search' | 'manual'>('search')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
   const [courseEntry, setCourseEntry] = useState<CourseEntryValue>(DEFAULT_COURSE_ENTRY)
+
+  useEffect(() => {
+    if (isAuthenticated && profile?.displayName) {
+      setPlayerName(profile.displayName)
+    }
+  }, [isAuthenticated, profile?.displayName])
 
   function handleCourseEntryChange(entry: CourseEntryValue) {
     setCourseEntry(entry)
@@ -134,34 +140,9 @@ export default function Setup() {
         <h1 className="text-2xl font-bold text-[#1a1a1a]">New Round</h1>
       </div>
 
-      {/* Saved courses scroll row */}
-      {courses.length > 0 && (
-        <div className="mb-2">
-          <div className="px-4 text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">
-            Saved Courses
-          </div>
-          <div className="flex gap-3 overflow-x-auto px-4 pb-2">
-            {courses.map(course => (
-              <button
-                key={course.id}
-                type="button"
-                onClick={() => selectCourse(course.id)}
-                className={`shrink-0 rounded-xl px-4 py-3 text-sm font-semibold min-h-[44px] flex items-center whitespace-nowrap border transition-colors ${
-                  selectedCourseId === course.id
-                    ? 'bg-[#2d5a27] text-white border-[#2d5a27]'
-                    : 'bg-white border-[#e5e1d8] text-[#2d5a27]'
-                }`}
-              >
-                {course.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Form */}
       <form id="setup-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-5 mx-4 mt-4 flex flex-col gap-5 mb-6">
+        <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-4 mx-2 mt-4 flex flex-col gap-5 mb-6">
           {/* Player name */}
           <div>
             <label className="text-sm font-medium text-gray-500 mb-1 block">Player Name</label>
@@ -180,6 +161,8 @@ export default function Setup() {
               value={courseEntry}
               onChange={handleCourseEntryChange}
               onModeChange={setCourseEntryMode}
+              savedCourses={courses}
+              onSelectSavedCourse={selectCourse}
             />
           </div>
 
@@ -277,4 +260,3 @@ export default function Setup() {
     </div>
   )
 }
-
