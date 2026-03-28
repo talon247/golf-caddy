@@ -36,7 +36,7 @@ export default function History() {
   const syncStatus = useAppStore(s => s.syncStatus)
   const markRoundPending = useAppStore(s => s.markRoundPending)
   const markRoundSynced = useAppStore(s => s.markRoundSynced)
-  const markRoundError = useAppStore(s => s.markRoundError)
+
 
   const navigate = useNavigate()
 
