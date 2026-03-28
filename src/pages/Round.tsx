@@ -8,8 +8,9 @@ import { useGroupRoundBroadcast } from '../hooks/useGroupRoundBroadcast'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
 import FairwayToggle from '../components/FairwayToggle'
+import LiveLeaderboard from '../components/LiveLeaderboard'
 
-type Tab = 'round' | 'scorecard'
+type Tab = 'round' | 'scorecard' | 'leaderboard'
 
 function scoreDiff(strokes: number, par: number): string {
   const d = strokes - par
@@ -54,7 +55,7 @@ export default function Round() {
   const groupRound = useGroupRoundStore((s) => s.groupRound)
   const updateLeaderboard = useLeaderboardStore((s) => s.updateScore)
   const myPlayerId = round?.id ?? ''
-  const { broadcastScore } = useGroupRoundBroadcast(groupRound?.id ?? null, myPlayerId)
+  const { broadcastScore, isOffline } = useGroupRoundBroadcast(groupRound?.id ?? null, myPlayerId)
 
   // Compute score values with null-safe guards (needed for the effect below).
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
@@ -207,10 +208,31 @@ export default function Round() {
         >
           Scorecard
         </button>
+        {groupRound && (
+          <button
+            onClick={() => setActiveTab('leaderboard')}
+            className={`flex-1 py-3 text-sm font-semibold transition-colors touch-target ${
+              activeTab === 'leaderboard'
+                ? 'text-forest border-b-2 border-forest'
+                : 'text-warm-gray'
+            }`}
+          >
+            Leaderboard
+          </button>
+        )}
       </div>
 
-      {activeTab === 'round' ? (
+      {activeTab === 'leaderboard' && <LiveLeaderboard />}
+
+      {activeTab === 'round' && (
         <div className="flex flex-col flex-1 p-4 gap-4">
+          {/* Offline banner — only shown during group rounds */}
+          {groupRound && isOffline && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-amber-800 text-sm font-medium">
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+              Offline — scores are saved locally and will sync when you reconnect
+            </div>
+          )}
           {/* Course / Running score banner */}
           <div className="flex items-center justify-between text-sm text-warm-gray">
             <span className="font-medium text-gray-700 truncate">{round.courseName}</span>
@@ -385,7 +407,9 @@ export default function Round() {
             </button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'scorecard' && (
         <div className="flex flex-col flex-1 p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-forest">Scorecard</h2>
