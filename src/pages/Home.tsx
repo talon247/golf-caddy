@@ -189,16 +189,10 @@ export default function Home() {
             Start New Round
           </Link>
           <Link
-            to="/group-round/host"
+            to="/group-round"
             className="flex items-center justify-center bg-forest text-cream py-4 rounded-2xl text-base font-bold shadow-md touch-target"
           >
-            👥 Start Group Round
-          </Link>
-          <Link
-            to="/group-round/join"
-            className="flex items-center justify-center border-2 border-forest text-forest py-4 rounded-2xl text-lg font-bold touch-target"
-          >
-            Join Round
+            👥 Group Round
           </Link>
         </div>
       )}

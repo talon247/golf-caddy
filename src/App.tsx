@@ -13,6 +13,7 @@ import RoundUndoC from './pages/RoundUndoC'
 import Summary from './pages/Summary'
 import Bag from './pages/Bag'
 import Courses from './pages/Courses'
+import GroupRound from './pages/GroupRound'
 import GroupRoundHost from './pages/GroupRoundHost'
 import GroupRoundJoin from './pages/GroupRoundJoin'
 import HandicapHistory from './pages/HandicapHistory'
@@ -47,6 +48,7 @@ function App() {
             <Route path="/summary/:id" element={<Summary />} />
             <Route path="/bag" element={<Bag />} />
             <Route path="/courses" element={<Courses />} />
+            <Route path="/group-round" element={<GroupRound />} />
             <Route path="/group-round/host" element={<GroupRoundHost />} />
             <Route path="/group-round/join" element={<GroupRoundJoin />} />
             <Route path="/group-round/join/:code" element={<GroupRoundJoin />} />
