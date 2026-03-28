@@ -1,14 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Green mound / hill -->
-  <ellipse cx="50" cy="82" rx="42" ry="20" fill="#4a9e3f"/>
-  <ellipse cx="50" cy="74" rx="30" ry="14" fill="#5cb54e"/>
+  <!-- Warm cream background circle -->
+  <circle cx="50" cy="50" r="48" fill="#f5f0e8"/>
 
-  <!-- Hole (dark circle) -->
-  <ellipse cx="50" cy="74" rx="5" ry="2.5" fill="#2d6b22"/>
+  <!-- Dark green mound base -->
+  <ellipse cx="50" cy="88" rx="46" ry="22" fill="#2d5a27"/>
 
-  <!-- Flag pole -->
-  <rect x="49" y="24" width="2.5" height="52" rx="1" fill="#e8b800"/>
+  <!-- Bright green mound top -->
+  <ellipse cx="50" cy="76" rx="34" ry="18" fill="#4a9e3f"/>
 
-  <!-- Red flag -->
-  <polygon points="51.5,24 51.5,44 70,34" fill="#e03030"/>
+  <!-- Hole -->
+  <ellipse cx="50" cy="74" rx="6" ry="3" fill="#1e3d1a"/>
+
+  <!-- Gold pole -->
+  <rect x="48" y="16" width="4" height="60" rx="2" fill="#e8b800"/>
+
+  <!-- Red flag — large and punchy -->
+  <polygon points="52,16 52,44 80,30" fill="#e03030"/>
 </svg>
