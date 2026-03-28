@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { XCircle } from 'lucide-react'
 import { useAppStore } from '../store'
+import { useGroupRoundStore } from '../store/groupRoundStore'
+import { useLeaderboardStore } from '../store/leaderboardStore'
+import { useGroupRoundBroadcast } from '../hooks/useGroupRoundBroadcast'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
 import FairwayToggle from '../components/FairwayToggle'
@@ -46,6 +49,48 @@ export default function Round() {
   const [activeTab, setActiveTab] = useState<Tab>('round')
   const [showAbandonModal, setShowAbandonModal] = useState(false)
 
+  // ── Group round broadcast ─────────────────────────────────────────────────
+  // All hooks must appear before any early returns (Rules of Hooks).
+  const groupRound = useGroupRoundStore((s) => s.groupRound)
+  const updateLeaderboard = useLeaderboardStore((s) => s.updateScore)
+  const myPlayerId = round?.id ?? ''
+  const { broadcastScore } = useGroupRoundBroadcast(groupRound?.id ?? null, myPlayerId)
+
+  // Compute score values with null-safe guards (needed for the effect below).
+  const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
+  const holeForEffect = round?.holes.find(h => h.number === currentHole) ?? null
+  const nonPutterShotsForEffect = holeForEffect
+    ? holeForEffect.shots.filter(s => !putterIds.has(s.clubId)).length
+    : 0
+  const strokesForEffect = nonPutterShotsForEffect + (holeForEffect?.putts ?? 0)
+
+  const prevBroadcastRef = useRef<{ holeNumber: number; strokes: number; putts: number } | null>(null)
+  useEffect(() => {
+    if (!groupRound || !round || !holeForEffect) return
+    const putts = holeForEffect.putts ?? 0
+    const prev = prevBroadcastRef.current
+    if (
+      prev &&
+      prev.holeNumber === currentHole &&
+      prev.strokes === strokesForEffect &&
+      prev.putts === putts
+    ) return
+    prevBroadcastRef.current = { holeNumber: currentHole, strokes: strokesForEffect, putts }
+    const delta = {
+      playerId: myPlayerId,
+      playerName: round.playerName,
+      holeNumber: currentHole,
+      strokes: strokesForEffect,
+      putts,
+      par: holeForEffect.par,
+      timestamp: new Date().toISOString(),
+    }
+    updateLeaderboard(delta)
+    broadcastScore(delta)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strokesForEffect, holeForEffect?.putts, currentHole, groupRound?.id])
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (!round) {
     return (
       <main className="flex flex-col flex-1 items-center justify-center p-6">
@@ -60,10 +105,8 @@ export default function Round() {
     )
   }
 
+  // round is non-null below — compute derived values for rendering.
   const hole = round.holes.find(h => h.number === currentHole)!
-  // Count non-putter club taps + separate putt counter
-  // Putter taps are for GIR/club tracking only — putts counter is the source of truth for putting score
-  const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   const nonPutterShots = hole.shots.filter(s => !putterIds.has(s.clubId)).length
   const strokes = nonPutterShots + (hole.putts ?? 0)
   const totalHoles = round.holeCount
@@ -421,8 +464,3 @@ export default function Round() {
     </main>
   )
 }
-
-
-
-
-

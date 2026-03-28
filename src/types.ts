@@ -65,3 +65,25 @@ export interface GroupRound {
   status: GroupRoundStatus
   createdAt: number
 }
+
+export interface ScoreDelta {
+  playerId: string
+  playerName: string
+  holeNumber: number
+  strokes: number
+  putts: number
+  par: number
+  timestamp: string
+}
+
+export interface PlayerScore {
+  playerId: string
+  displayName: string
+  currentHole: number
+  totalStrokes: number
+  totalPar: number
+  scoreToPar: number
+  isOnline: boolean
+  lastSyncedAt: string
+  holes: Record<number, { strokes: number; putts: number; par: number }>
+}

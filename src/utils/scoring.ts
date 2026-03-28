@@ -1,4 +1,4 @@
-import type { Hole } from '../types'
+import type { Hole, PlayerScore, ScoreDelta } from '../types'
 
 /** Average putts per hole, based only on holes that have putts data */
 export function calcPuttsAvg(holes: Hole[]): number | null {
@@ -41,5 +41,44 @@ export function calcFairwaysHit(holes: Hole[]): { pct: number; hits: number; tot
   if (eligible.length === 0) return null
   const hits = eligible.filter(h => h.fairwayHit === true).length
   return { pct: (hits / eligible.length) * 100, hits, total: eligible.length }
+}
+
+/**
+ * Pure function — applies a score delta to an existing player score entry.
+ * Returns a new PlayerScore without mutating the input.
+ * Exported for unit testing.
+ */
+export function applyScoreDelta(existing: PlayerScore | undefined, delta: ScoreDelta): PlayerScore {
+  if (!existing) {
+    return {
+      playerId: delta.playerId,
+      displayName: delta.playerName,
+      currentHole: delta.holeNumber,
+      totalStrokes: delta.strokes,
+      totalPar: delta.par,
+      scoreToPar: delta.strokes - delta.par,
+      isOnline: true,
+      lastSyncedAt: delta.timestamp,
+      holes: { [delta.holeNumber]: { strokes: delta.strokes, putts: delta.putts, par: delta.par } },
+    }
+  }
+
+  const updatedHoles = {
+    ...existing.holes,
+    [delta.holeNumber]: { strokes: delta.strokes, putts: delta.putts, par: delta.par },
+  }
+  const totalStrokes = Object.values(updatedHoles).reduce((sum, h) => sum + h.strokes, 0)
+  const totalPar = Object.values(updatedHoles).reduce((sum, h) => sum + h.par, 0)
+
+  return {
+    ...existing,
+    currentHole: delta.holeNumber,
+    totalStrokes,
+    totalPar,
+    scoreToPar: totalStrokes - totalPar,
+    isOnline: true,
+    lastSyncedAt: delta.timestamp,
+    holes: updatedHoles,
+  }
 }
 
