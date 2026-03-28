@@ -46,7 +46,7 @@ begin
     perform cron.schedule(
       'golf-caddy: cleanup expired group rounds',
       '0 * * * *',  -- every hour on the hour (UTC)
-      $$select public.cleanup_expired_group_rounds();$$
+      $cron$select public.cleanup_expired_group_rounds();$cron$
     );
   end if;
 exception
