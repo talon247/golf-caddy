@@ -199,6 +199,20 @@ export async function syncRoundToSupabase(
   }
 }
 
+// ── Lock group round rounds ───────────────────────────────────────────────
+
+/**
+ * Call the lock_rounds_for_group_round RPC to mark all rounds in a group
+ * round as locked in Supabase. Fire-and-forget; does not block the UI.
+ */
+export async function lockGroupRoundRounds(groupRoundId: string): Promise<void> {
+  try {
+    await supabase.rpc('lock_rounds_for_group_round', { p_group_round_id: groupRoundId })
+  } catch {
+    // intentionally swallowed — local state is already updated
+  }
+}
+
 // ── Abandon round ─────────────────────────────────────────────────────────
 
 /**

@@ -7,7 +7,7 @@ import { loadState, saveState, addAbandonedRoundId, type PersistedState } from '
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
-import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase } from '../lib/sync'
+import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase, lockGroupRoundRounds } from '../lib/sync'
 import { addToQueue, getQueue, processSyncQueue } from '../lib/syncQueue'
 import { useToastStore } from './toastStore'
 
@@ -374,8 +374,13 @@ export const useAppStore = create<StoreState>((set, get) => ({
       scoreDifferential = computeScoreDifferential(ags, existing.courseRating, existing.slopeRating)
     }
 
+    // Capture group round state BEFORE clearing (clearGroupRound wipes it)
+    const groupState = useGroupRoundStore.getState()
+    const hasSideGames = groupState.sideGameConfig?.sideGamesEnabled === true
+    const groupRoundId = groupState.groupRound?.id
+
     const rounds = get().rounds.map(r =>
-      r.id === roundId ? { ...r, completedAt: now, scoreDifferential } : r,
+      r.id === roundId ? { ...r, completedAt: now, scoreDifferential, isLocked: hasSideGames && !!groupRoundId ? true : undefined } : r,
     )
     const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
     const roundsVersion = get().roundsVersion + 1
@@ -394,6 +399,10 @@ export const useAppStore = create<StoreState>((set, get) => ({
           .then(result => {
             if (result.success) {
               get().markRoundSynced(roundId)
+              // Lock all rounds in the group round in Supabase (fire-and-forget)
+              if (hasSideGames && groupRoundId) {
+                void lockGroupRoundRounds(groupRoundId)
+              }
             } else {
               get().markRoundError(roundId)
               addToQueue(roundId)
@@ -415,6 +424,14 @@ export const useAppStore = create<StoreState>((set, get) => ({
 
   deleteRound: (roundId) => {
     const state = get()
+    const round = state.rounds.find(r => r.id === roundId)
+
+    // Guard: locked rounds (tied to side bets) must not be deleted
+    if (round?.isLocked) {
+      useToastStore.getState().addToast('This round is locked and cannot be deleted')
+      return
+    }
+
     const wasSynced = state.syncStatus[roundId] === 'synced'
 
     // Remove from sync tracking (covers pending, error, local, synced)
