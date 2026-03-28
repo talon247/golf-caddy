@@ -17,6 +17,7 @@ import GroupRoundJoin from './pages/GroupRoundJoin'
 import HandicapHistory from './pages/HandicapHistory'
 import ResetPassword from './pages/ResetPassword'
 import Profile from './pages/Profile'
+import History from './pages/History'
 
 function AppInner() {
   useGroupRoundRecovery()
@@ -47,6 +48,7 @@ function App() {
             <Route path="/handicap" element={<HandicapHistory />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/history" element={<History />} />
           </Routes>
         </div>
         </AuthProvider>

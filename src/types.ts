@@ -16,6 +16,7 @@ export interface Hole {
   putts?: number
   penalties?: number
   fairwayHit?: boolean
+  gir?: boolean
 }
 
 export interface CourseHole {
@@ -44,6 +45,7 @@ export interface Round {
   startedAt: number
   completedAt?: number
   holes: Hole[]
+  scoreDifferential?: number | null
 }
 
 export interface AppState {
@@ -65,6 +67,14 @@ export interface SyncQueueItem {
   roundId: string
   queuedAt: number
   retries: number
+}
+
+export type SyncStatusValue = 'local' | 'synced' | 'pending' | 'error'
+
+export interface SyncedRound extends Round {
+  userId?: string
+  syncStatus: SyncStatusValue
+  remoteId?: string
 }
 
 // ── Multiplayer / Group Round ──────────────────────────────────────────────

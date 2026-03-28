@@ -6,6 +6,9 @@ import type { Club, Round, Shot, UserProfile, SyncQueueItem } from '../types'
 import { loadState, saveState, type PersistedState } from '../storage'
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
+import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
+import { syncRoundToSupabase } from '../lib/sync'
+import { addToQueue } from '../lib/syncQueue'
 
 interface StoreState {
   clubBag: Club[]
@@ -306,14 +309,50 @@ export const useAppStore = create<StoreState>((set, get) => ({
   },
 
   completeRound: (roundId) => {
+    const now = Date.now()
+    const existing = get().rounds.find(r => r.id === roundId)
+
+    // Compute handicap differential if we have rating/slope data
+    let scoreDifferential: number | null = null
+    if (existing && existing.courseRating !== undefined && existing.slopeRating !== undefined) {
+      const bag = get().clubBag
+      const putterIds = new Set(
+        bag.filter(c => c.name.toLowerCase().includes('putter')).map(c => c.id),
+      )
+      const holeScores = existing.holes.map(
+        h => h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0),
+      )
+      const holePars = existing.holes.map(h => h.par)
+      const ags = computeAGS(holeScores, holePars)
+      scoreDifferential = computeScoreDifferential(ags, existing.courseRating, existing.slopeRating)
+    }
+
     const rounds = get().rounds.map(r =>
-      r.id === roundId ? { ...r, completedAt: Date.now() } : r,
+      r.id === roundId ? { ...r, completedAt: now, scoreDifferential } : r,
     )
     const activeRoundId = get().activeRoundId === roundId ? undefined : get().activeRoundId
     set({ rounds, activeRoundId })
     persist({ ...get(), rounds, activeRoundId })
     useGroupRoundStore.getState().clearGroupRound()
     useLeaderboardStore.getState().reset()
+
+    // Fire-and-forget sync if authenticated
+    const { isAuthenticated, userId } = get()
+    if (isAuthenticated && userId) {
+      const completedRound = get().rounds.find(r => r.id === roundId)
+      if (completedRound) {
+        get().markRoundPending(roundId)
+        syncRoundToSupabase(completedRound, userId).then(result => {
+          if (result.success) {
+            get().markRoundSynced(roundId)
+          } else {
+            get().markRoundError(roundId)
+            addToQueue(roundId)
+          }
+        })
+      }
+    }
+    // If not authenticated, syncStatus stays 'local' (default)
   },
 
   deleteRound: (roundId) => {

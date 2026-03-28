@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { signOut } from '../lib/auth'
+import { fetchProfile, syncClubs } from '../lib/sync'
 import { AuthModal } from '../components/AuthModal'
 import type { Round } from '../types'
 
 function computeStats(rounds: Round[]) {
-  const completed = rounds.filter(r => r.completedAt)
+  const completed = rounds.filter(r => r.completedAt != null)
   if (completed.length === 0) {
     return { played: 0, bestVsPar: null as number | null, avgVsPar: null as number | null }
   }
@@ -54,13 +55,40 @@ function getInitials(name: string | undefined | null): string {
 
 export default function Profile() {
   const isAuthenticated = useAppStore(s => s.isAuthenticated)
+  const userId = useAppStore(s => s.userId)
   const profile = useAppStore(s => s.profile)
   const rounds = useAppStore(s => s.rounds)
+  const clubBag = useAppStore(s => s.clubBag)
   const setAuthState = useAppStore(s => s.setAuthState)
+  const setProfile = useAppStore(s => s.setProfile)
 
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authModalTab, setAuthModalTab] = useState<'signin' | 'signup'>('signin')
   const [signingOut, setSigningOut] = useState(false)
+
+  // THEA-139: Fetch profile from Supabase on mount (when signed in)
+  // THEA-140: Trigger club bag sync once when authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !userId) return
+
+    let cancelled = false
+
+    fetchProfile(userId)
+      .then(remoteProfile => {
+        if (cancelled) return
+        if (remoteProfile) {
+          setProfile(remoteProfile)
+        }
+      })
+      .catch(err => console.error('[Profile] fetchProfile failed:', err))
+
+    // Fire-and-forget club sync
+    syncClubs(userId, clubBag).catch(err =>
+      console.error('[Profile] syncClubs failed:', err),
+    )
+
+    return () => { cancelled = true }
+  }, [isAuthenticated, userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = computeStats(rounds)
 
