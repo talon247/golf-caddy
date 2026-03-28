@@ -128,6 +128,48 @@ export default function Summary() {
     return { front: calcNine(front), back: calcNine(back) }
   })()
 
+  // Best hole (lowest score relative to par, only if under par)
+  const bestHole = (() => {
+    let best: { number: number; diff: number } | null = null
+    for (const h of playedHoles) {
+      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const d = strokes - h.par
+      if (d < 0 && (best === null || d < best.diff)) {
+        best = { number: h.number, diff: d }
+      }
+    }
+    return best
+  })()
+
+  // Worst hole (highest score relative to par, only if over par)
+  const worstHole = (() => {
+    let worst: { number: number; diff: number } | null = null
+    for (const h of playedHoles) {
+      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      const d = strokes - h.par
+      if (d > 0 && (worst === null || d > worst.diff)) {
+        worst = { number: h.number, diff: d }
+      }
+    }
+    return worst
+  })()
+
+  // Longest par-or-better streak
+  const longestStreak = (() => {
+    let max = 0
+    let current = 0
+    for (const h of playedHoles) {
+      const strokes = h.shots.filter(s => !putterIds.has(s.clubId)).length + (h.putts ?? 0) + (h.penalties ?? 0)
+      if (strokes <= h.par) {
+        current++
+        if (current > max) max = current
+      } else {
+        current = 0
+      }
+    }
+    return max >= 2 ? max : null
+  })()
+
   function formatAvgDiff(d: number): string {
     if (Math.abs(d) < 0.05) return 'E'
     return d > 0 ? `+${d.toFixed(1)}` : `\u2212${Math.abs(d).toFixed(1)}`
@@ -324,6 +366,36 @@ export default function Summary() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Best / Worst Hole + Streak */}
+      {(bestHole || worstHole || longestStreak) && (
+        <div>
+          <h2 className="text-sm font-semibold text-warm-gray uppercase tracking-wide mb-2">Highlights</h2>
+          <div className="grid grid-cols-3 gap-2 text-center text-sm">
+            {bestHole && (
+              <div className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className="text-xl font-black text-forest-mid">Hole {bestHole.number}</div>
+                <div className="text-warm-gray text-xs mt-0.5">Best Hole</div>
+                <div className="text-xs font-semibold text-forest-mid">{bestHole.diff}</div>
+              </div>
+            )}
+            {worstHole && (
+              <div className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className="text-xl font-black text-red-600">Hole {worstHole.number}</div>
+                <div className="text-warm-gray text-xs mt-0.5">Worst Hole</div>
+                <div className="text-xs font-semibold text-red-600">+{worstHole.diff}</div>
+              </div>
+            )}
+            {longestStreak && (
+              <div className="bg-white rounded-xl border border-cream-dark p-3">
+                <div className="text-xl font-black text-forest">{longestStreak}</div>
+                <div className="text-warm-gray text-xs mt-0.5">Par-or-Better</div>
+                <div className="text-xs font-semibold text-gray-700">hole streak</div>
+              </div>
+            )}
           </div>
         </div>
       )}
