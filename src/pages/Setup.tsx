@@ -230,6 +230,8 @@ export default function Setup() {
           {/* Par grid */}
           <ParGridEditor holeCount={holeCount} pars={pars} onChange={handleParChange} />
         </div>
+        {/* Spacer so par grid scrolls fully above the sticky CTA + BottomNav */}
+        <div className="h-36" />
 
         {/* CTA */}
         <div className="sticky bottom-16 bg-[#f5f0e8] border-t border-[#e5e1d8] px-4 pt-3 pb-4">
