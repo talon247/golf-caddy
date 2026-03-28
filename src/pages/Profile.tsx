@@ -5,6 +5,7 @@ import { signOut } from '../lib/auth'
 import { fetchProfile, syncClubs, migrateLocalRounds } from '../lib/sync'
 import { AuthModal } from '../components/AuthModal'
 import { UsernameSetup } from '../components/UsernameSetup'
+import { CANNY_WISH_LIST_URL } from '../lib/config'
 import type { Round } from '../types'
 
 function computeStats(rounds: Round[]) {
@@ -312,6 +313,17 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Canny wish list link */}
+        <a
+          href={CANNY_WISH_LIST_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between px-4 py-3 rounded-xl border border-[#e5e1d8] bg-white text-sm text-[#2d5a27] font-semibold"
+        >
+          <span>💡 Vote on what we build next</span>
+          <span className="text-[#6b6b6b]">→</span>
+        </a>
 
         {/* Actions */}
         <div className="flex flex-col gap-3">

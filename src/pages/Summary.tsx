@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAppStore } from '../store'
 import { calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
