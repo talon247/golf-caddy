@@ -19,13 +19,17 @@ function stableHoleId(roundId: string, holeNumber: number): string {
 }
 
 /**
- * Derive a stable, deterministic UUID for a shot from (holeId, sequence).
- * Encodes sequence into the last 5 hex chars of the hole UUID.
+ * Derive a stable, deterministic UUID for a shot from (roundId, holeNumber, sequence).
+ * Encodes holeNumber (2 hex chars) and sequence (2 hex chars) into the last 4 chars of
+ * the round UUID. Using roundId + holeNumber directly avoids the prior bug where
+ * stableShotId derived from holeId would collide — holeId only differs in chars 28–31,
+ * but we sliced at 27, making all holes share the same prefix.
  */
-function stableShotId(holeId: string, sequence: number): string {
-  const hex = holeId.replace(/-/g, '')
-  const tail = sequence.toString(16).padStart(5, '0')
-  const full = hex.slice(0, 27) + tail
+function stableShotId(roundId: string, holeNumber: number, sequence: number): string {
+  const hex = roundId.replace(/-/g, '')
+  const holeHex = holeNumber.toString(16).padStart(2, '0')
+  const seqHex = sequence.toString(16).padStart(2, '0')
+  const full = hex.slice(0, 28) + holeHex + seqHex
   return `${full.slice(0, 8)}-${full.slice(8, 12)}-${full.slice(12, 16)}-${full.slice(16, 20)}-${full.slice(20)}`
 }
 
@@ -135,7 +139,7 @@ export async function syncRoundToSupabase(
       const holeId = stableHoleId(round.id, hole.number)
       hole.shots.forEach((shot, i) => {
         allShots.push({
-          id: stableShotId(holeId, i + 1),
+          id: stableShotId(round.id, hole.number, i + 1),
           hole_id: holeId,
           round_id: round.id,
           user_id: userId,
