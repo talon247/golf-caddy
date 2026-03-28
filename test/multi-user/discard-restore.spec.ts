@@ -28,7 +28,7 @@ test.describe('Discard / Restore — abandon mid-round, sign out/in, restore ban
 
     // ── Sign in ────────────────────────────────────────────────────────
     await signInTestUser(page, playerA, appUrl)
-    await expect(page.getByText(/golf caddy/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
 
     // ── Start a group round (host, solo) ───────────────────────────────
     await page.getByRole('link', { name: /group round/i }).click()
@@ -80,7 +80,7 @@ test.describe('Discard / Restore — abandon mid-round, sign out/in, restore ban
 
     // ── Sign back in ───────────────────────────────────────────────────
     await signInTestUser(page, playerA, appUrl)
-    await expect(page.getByText(/golf caddy/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
 
     // ── Verify restore banner reappears ────────────────────────────────
     await expect(
@@ -97,7 +97,7 @@ test.describe('Discard / Restore — abandon mid-round, sign out/in, restore ban
     // ── Verify banner does not reappear ────────────────────────────────
     await page.waitForTimeout(2_000)
     await page.reload()
-    await expect(page.getByText(/golf caddy/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
 
     await expect(page.getByText(/in-progress round/i)).not.toBeVisible({
       timeout: 5_000,

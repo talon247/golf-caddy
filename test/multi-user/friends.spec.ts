@@ -34,8 +34,8 @@ test.describe('Friends — send request, accept, presence indicator', () => {
     await signInTestUser(pageA, playerA, appUrl)
     await signInTestUser(pageB, playerB, appUrl)
 
-    await expect(pageA.getByText(/golf caddy/i)).toBeVisible()
-    await expect(pageB.getByText(/golf caddy/i)).toBeVisible()
+    await expect(pageA.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
+    await expect(pageB.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
 
     // ── Set up usernames if prompted ───────────────────────────────────
     const usernameA = `testa_${playerA.id.slice(0, 6)}`

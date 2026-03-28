@@ -35,8 +35,8 @@ test.describe('Group Round — host + join + leaderboard sync', () => {
     await signInTestUser(pageA, playerA, appUrl)
     await signInTestUser(pageB, playerB, appUrl)
 
-    await expect(pageA.getByText(/golf caddy/i)).toBeVisible()
-    await expect(pageB.getByText(/golf caddy/i)).toBeVisible()
+    await expect(pageA.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
+    await expect(pageB.getByRole('heading', { name: /golf caddy/i })).toBeVisible()
 
     // ── Player A: start group round (host) ─────────────────────────────
     await pageA.getByRole('link', { name: /group round/i }).click()
