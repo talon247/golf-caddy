@@ -41,7 +41,6 @@ jobs:
 
       - name: Notify Discord
         continue-on-error: true
-        if: secrets.DISCORD_WEBHOOK_URL != ''
         run: |
           curl -s -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
