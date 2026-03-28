@@ -171,8 +171,8 @@ export default function GroupRoundHost() {
           p_course_name: courseName.trim() || 'Group Round',
           p_hole_count: holeCount,
           p_pars: pars.slice(0, holeCount),
-          p_course_rating: courseRating,
-          p_slope_rating: slopeRating,
+          p_course_rating: courseRating ?? undefined,
+          p_slope_rating: slopeRating ?? undefined,
         })
       }
 
