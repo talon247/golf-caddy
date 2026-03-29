@@ -14,6 +14,13 @@ import JoinLobby from '../components/group-round/JoinLobby'
 
 type Step = 'code' | 'name' | 'lobby'
 
+interface LobbyPreview {
+  courseName: string | null
+  holeCount: number | null
+  playerCount: number
+  status: string
+}
+
 interface JoinRpcResult {
   success: boolean
   error?: string
@@ -25,6 +32,15 @@ interface JoinRpcResult {
   courseName?: string | null
   holeCount?: number | null
   pars?: number[] | null
+}
+
+interface LobbyRpcResult {
+  error?: string
+  status?: string
+  createdAt?: string
+  courseName?: string | null
+  holeCount?: number | null
+  players?: { id: string; playerName: string; joinedAt: string }[]
 }
 
 function mapJoinError(raw: string): JoinError {
@@ -47,6 +63,7 @@ export default function GroupRoundJoin() {
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [lobbyInfo, setLobbyInfo] = useState<LobbyPreview | null>(null)
 
   const setGroupRound = useGroupRoundStore(s => s.setGroupRound)
   const resetLeaderboard = useLeaderboardStore(s => s.reset)
@@ -54,7 +71,7 @@ export default function GroupRoundJoin() {
   const addRound = useAppStore(s => s.addRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
 
-  // Auto-advance to name step when URL contains a valid 4-char room code
+  // Auto-advance to name step when URL contains a valid room code
   useEffect(() => {
     if (urlCode && urlCode.length === 4) {
       handleCodeSubmit()
@@ -69,7 +86,6 @@ export default function GroupRoundJoin() {
     setLoading(true)
     setError(null)
     try {
-      // Peek at the room to confirm it exists before asking for name
       const { data, error: rpcError } = await rpc('get_group_round_lobby', {
         p_room_code: roomCode,
       })
@@ -78,12 +94,23 @@ export default function GroupRoundJoin() {
         setError('Unable to check room — please try again.')
         return
       }
-      const result = data as { error?: string; status?: string; createdAt?: string }
+      const result = data as LobbyRpcResult
       if (result.error === 'not_found') {
-        setError('Code not found. Check the code and try again.')
-      } else if (result.status === 'completed' || (result.createdAt && Date.now() - new Date(result.createdAt).getTime() > 24 * 60 * 60 * 1000)) {
-        setError('This round has already ended.')
+        setError('This round doesn\'t exist. Check the link and try again.')
+      } else if (
+        result.status === 'completed' ||
+        (result.createdAt && Date.now() - new Date(result.createdAt).getTime() > 24 * 60 * 60 * 1000)
+      ) {
+        setError('This round has ended.')
+      } else if ((result.players?.length ?? 0) >= 4) {
+        setError('This round is full.')
       } else {
+        setLobbyInfo({
+          courseName: result.courseName ?? null,
+          holeCount: result.holeCount ?? null,
+          playerCount: result.players?.length ?? 0,
+          status: result.status ?? 'waiting',
+        })
         setStep('name')
       }
     } catch {
@@ -110,9 +137,17 @@ export default function GroupRoundJoin() {
 
       const result = data as JoinRpcResult
       if (!result.success) {
-        setError(result.message ?? 'Something went wrong.')
-        if (mapJoinError(result.error ?? '') === 'not_found' || mapJoinError(result.error ?? '') === 'expired') {
+        const joinErr = mapJoinError(result.error ?? '')
+        if (joinErr === 'not_found') {
+          setError('This round doesn\'t exist. Check the link and try again.')
           setStep('code')
+        } else if (joinErr === 'expired') {
+          setError('This round has ended.')
+          setStep('code')
+        } else if (joinErr === 'full') {
+          setError('This round is full.')
+        } else {
+          setError(result.message ?? 'Something went wrong.')
         }
         return
       }
@@ -189,13 +224,13 @@ export default function GroupRoundJoin() {
           displayName={displayName}
           onChange={setDisplayName}
           onSubmit={handleNameSubmit}
-          onBack={() => { setStep('code'); setError(null) }}
+          onBack={() => { setStep('code'); setError(null); setLobbyInfo(null) }}
           error={error}
           loading={loading}
+          roundInfo={lobbyInfo ?? undefined}
         />
       )}
       {step === 'lobby' && <JoinLobby />}
     </main>
   )
 }
-

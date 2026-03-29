@@ -58,6 +58,7 @@ function App() {
             <Route path="/group-round/host" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundHost /></RouteErrorBoundary>} />
             <Route path="/group-round/join" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundJoin /></RouteErrorBoundary>} />
             <Route path="/group-round/join/:code" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundJoin /></RouteErrorBoundary>} />
+            <Route path="/join/:code" element={<RouteErrorBoundary routeName="Group Round"><GroupRoundJoin /></RouteErrorBoundary>} />
             <Route path="/handicap" element={<HandicapHistory />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />

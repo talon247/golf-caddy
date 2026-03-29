@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import QRCode from 'react-qr-code'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useGroupRoundStore } from '../store/groupRoundStore'
@@ -256,11 +257,26 @@ export default function GroupRoundHost() {
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(roomCode)
+      await navigator.clipboard.writeText(joinUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { /* ignore */ }
-  }, [roomCode])
+  }, [joinUrl])
+
+  const handleShare = useCallback(async () => {
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: 'Join my round on Golf Caddy', url: joinUrl })
+      } catch { /* user cancelled or error */ }
+    } else {
+      // Fallback: copy link
+      try {
+        await navigator.clipboard.writeText(joinUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch { /* ignore */ }
+    }
+  }, [joinUrl])
 
   const handleParChange = useCallback((index: number, par: number) => {
     setPars(prev => {
@@ -482,24 +498,33 @@ export default function GroupRoundHost() {
       </div>
 
       <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-6 flex flex-col items-center gap-5 shadow-sm">
+        {/* QR code */}
+        <div className="bg-white p-3 rounded-xl border border-[#e5e1d8]">
+          <QRCode value={joinUrl} size={180} />
+        </div>
+
         {/* Room code */}
         <div className="text-6xl font-black text-[#2d5a27] tracking-widest font-mono text-center">
           {roomCode}
         </div>
 
-        {/* Copy button */}
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="w-full py-3 rounded-xl border-2 border-[#2d5a27] text-[#2d5a27] font-semibold touch-target"
-        >
-          {copied ? '✓ Copied!' : 'Copy Code'}
-        </button>
-
-        {/* Join URL */}
-        <p className="text-xs text-gray-500 text-center break-all">
-          Or share link: <span className="text-[#2d5a27]">{joinUrl}</span>
-        </p>
+        {/* Share + Copy buttons */}
+        <div className="flex gap-3 w-full">
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex-1 py-3 rounded-xl bg-[#2d5a27] text-white font-semibold touch-target"
+          >
+            Share Link
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex-1 py-3 rounded-xl border-2 border-[#2d5a27] text-[#2d5a27] font-semibold touch-target"
+          >
+            {copied ? '✓ Copied!' : 'Copy Link'}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#e5e1d8] p-4">
@@ -507,7 +532,7 @@ export default function GroupRoundHost() {
           Waiting for players to join…
         </p>
         <p className="text-xs text-gray-400 text-center mt-1">
-          Share the code or link above so players can join and log their scores in real time.
+          Scan the QR code or share the link so players can join and log their scores in real time.
         </p>
       </div>
 
