@@ -6,6 +6,7 @@ import { calcTotalStrokes } from '../utils/scoring'
 import { useGroupRoundStore } from '../store/groupRoundStore'
 import { useLeaderboardStore } from '../store/leaderboardStore'
 import { useGroupRoundBroadcast } from '../hooks/useGroupRoundBroadcast'
+import { useSpectatorCount } from '../hooks/useSpectatorCount'
 import ConfirmModal from '../components/ConfirmModal'
 import PuttsInput from '../components/PuttsInput'
 import PenaltiesInput from '../components/PenaltiesInput'
@@ -80,6 +81,7 @@ export default function Round() {
   const updateLeaderboard = useLeaderboardStore((s) => s.updateScore)
   const myPlayerId = round?.id ?? ''
   const { broadcastScore, isOffline } = useGroupRoundBroadcast(groupRound?.id ?? null, myPlayerId)
+  const spectatorCount = useSpectatorCount(groupRound?.id ?? null)
 
   // Compute score values with null-safe guards (needed for the effect below).
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
@@ -358,7 +360,7 @@ export default function Round() {
         )}
       </div>
 
-      {activeTab === 'leaderboard' && <LiveLeaderboard />}
+      {activeTab === 'leaderboard' && <LiveLeaderboard spectatorCount={spectatorCount} />}
 
       {activeTab === 'sidegames' && (
         <div className="flex flex-col flex-1 overflow-y-auto pb-6">

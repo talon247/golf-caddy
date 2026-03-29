@@ -248,6 +248,33 @@ export async function abandonRoundInSupabase(roundId: string): Promise<void> {
   }
 }
 
+// ── Insert tournament round ────────────────────────────────────────────────
+
+/**
+ * Link a completed group round to a tournament by inserting a tournament_rounds row.
+ * Fire-and-forget; errors are swallowed so they don't block round completion.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- tournament tables pending THEA-417
+const db = supabase as unknown as any
+
+export async function insertTournamentRound(
+  groupRoundId: string,
+  tournamentId: string,
+): Promise<void> {
+  try {
+    await db
+      .from('tournament_rounds')
+      .insert({
+        tournament_id: tournamentId,
+        group_round_id: groupRoundId,
+        counted_at: new Date().toISOString(),
+        status: 'completed',
+      })
+  } catch {
+    // intentionally swallowed — round is already completed locally
+  }
+}
+
 // ── Delete round ──────────────────────────────────────────────────────────
 
 /**

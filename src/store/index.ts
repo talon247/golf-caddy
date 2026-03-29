@@ -8,7 +8,7 @@ import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
 import { calcTotalStrokes } from '../utils/scoring'
-import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase, lockGroupRoundRounds, markGroupRoundCompleted } from '../lib/sync'
+import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase, lockGroupRoundRounds, markGroupRoundCompleted, insertTournamentRound } from '../lib/sync'
 import { computeSideGameState } from '../hooks/useSideGameState'
 import { buildSideGameResults, persistSideGameResults, persistSettlementHistory } from '../lib/sideGames/persist'
 import { aggregateSettlement } from '../lib/sideGames/settlement'
@@ -382,6 +382,7 @@ export const useAppStore = create<StoreState>((set, get) => ({
     const groupState = useGroupRoundStore.getState()
     const hasSideGames = groupState.sideGameConfig?.sideGamesEnabled === true
     const groupRoundId = groupState.groupRound?.id
+    const capturedTournamentId = groupState.tournamentId
 
     // Capture side game data before stores are cleared
     const leaderboardPlayers = useLeaderboardStore.getState().players
@@ -429,6 +430,13 @@ export const useAppStore = create<StoreState>((set, get) => ({
                 await markGroupRoundCompleted(groupRoundId)
                 await persistSideGameResults(groupRoundId, capturedSideGameResults)
                 await persistSettlementHistory(roundId, capturedNetAmounts, capturedPlayerUserIdMap)
+              } else if (groupRoundId) {
+                // No side games — still need to mark completed for tournament linking
+                await markGroupRoundCompleted(groupRoundId)
+              }
+              if (groupRoundId && capturedTournamentId) {
+                // Link this group round to the tournament
+                await insertTournamentRound(groupRoundId, capturedTournamentId)
               }
             } else {
               get().markRoundError(roundId)

@@ -29,6 +29,9 @@ const Analytics = lazy(() => import('./pages/Analytics'))
 const Friends = lazy(() => import('./pages/Friends'))
 const SettlementHistory = lazy(() => import('./pages/SettlementHistory'))
 const TournamentCreate = lazy(() => import('./pages/TournamentCreate'))
+const TournamentEventDashboard = lazy(() => import('./pages/TournamentEventDashboard'))
+const TournamentLeagueDashboard = lazy(() => import('./pages/TournamentLeagueDashboard'))
+const SpectatorWatch = lazy(() => import('./pages/SpectatorWatch'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function AppInner() {
@@ -68,6 +71,9 @@ function App() {
             <Route path="/friends" element={<Friends />} />
             <Route path="/settlement-history" element={<SettlementHistory />} />
             <Route path="/tournament/create" element={<TournamentCreate />} />
+            <Route path="/tournament/event/:id/dashboard" element={<RouteErrorBoundary routeName="Tournament"><TournamentEventDashboard /></RouteErrorBoundary>} />
+            <Route path="/tournament/league/:id/dashboard" element={<RouteErrorBoundary routeName="League"><TournamentLeagueDashboard /></RouteErrorBoundary>} />
+            <Route path="/watch/:roomCode" element={<SpectatorWatch />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

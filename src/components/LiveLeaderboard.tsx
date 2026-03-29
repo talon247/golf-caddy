@@ -75,7 +75,11 @@ function sortedPlayers(players: PlayerScore[]): PlayerScore[] {
   })
 }
 
-export default function LiveLeaderboard() {
+interface LiveLeaderboardProps {
+  spectatorCount?: number
+}
+
+export default function LiveLeaderboard({ spectatorCount }: LiveLeaderboardProps = {}) {
   const players = useLeaderboardStore((s) => s.players)
   const isLoading = useLeaderboardStore((s) => s.isLoading)
 
@@ -85,9 +89,16 @@ export default function LiveLeaderboard() {
     <div className="flex flex-col flex-1 p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-forest">Leaderboard</h2>
-        {players.length > 0 && (
-          <span className="text-xs text-warm-gray">Live</span>
-        )}
+        <div className="flex items-center gap-2">
+          {spectatorCount !== undefined && spectatorCount > 0 && (
+            <span className="text-xs text-warm-gray">
+              {spectatorCount} watching
+            </span>
+          )}
+          {players.length > 0 && (
+            <span className="text-xs text-warm-gray">Live</span>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-cream-dark bg-white shadow-sm">

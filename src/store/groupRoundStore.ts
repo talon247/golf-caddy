@@ -12,6 +12,9 @@ interface GroupRoundStore {
   sideGameConfig: SideGameConfig | null
   /** True once the first score is entered — side game config becomes read-only */
   sideGameConfigLocked: boolean
+  /** Set when this group round is played within a tournament/league context */
+  tournamentId: string | null
+  tournamentName: string | null
 
   setGroupRound: (round: GroupRound) => void
   setSideGameConfig: (config: SideGameConfig | null) => void
@@ -25,6 +28,7 @@ interface GroupRoundStore {
   setPlayers: (players: GroupRoundPlayer[]) => void
   // Join flow
   setCurrentPlayer: (player: GroupRoundPlayer) => void
+  setTournamentContext: (tournamentId: string | null, tournamentName: string | null) => void
   clearGroupRound: () => void
   reset: () => void
 }
@@ -37,6 +41,8 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
   players: [],
   sideGameConfig: null,
   sideGameConfigLocked: false,
+  tournamentId: null,
+  tournamentName: null,
 
   setGroupRound: (round) => set({ groupRound: round, status: 'waiting', error: null }),
 
@@ -90,7 +96,9 @@ export const useGroupRoundStore = create<GroupRoundStore>((set) => ({
 
   setCurrentPlayer: (player) => set({ currentPlayer: player }),
 
-  clearGroupRound: () => set({ groupRound: null, currentPlayer: null, players: [], status: 'idle', error: null, sideGameConfig: null, sideGameConfigLocked: false }),
+  setTournamentContext: (tournamentId, tournamentName) => set({ tournamentId, tournamentName }),
 
-  reset: () => set({ groupRound: null, status: 'idle', error: null, currentPlayer: null, players: [], sideGameConfig: null, sideGameConfigLocked: false }),
+  clearGroupRound: () => set({ groupRound: null, currentPlayer: null, players: [], status: 'idle', error: null, sideGameConfig: null, sideGameConfigLocked: false, tournamentId: null, tournamentName: null }),
+
+  reset: () => set({ groupRound: null, status: 'idle', error: null, currentPlayer: null, players: [], sideGameConfig: null, sideGameConfigLocked: false, tournamentId: null, tournamentName: null }),
 }))

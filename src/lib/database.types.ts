@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417, THEA-418, THEA-431, THEA-432)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417, THEA-418, THEA-431, THEA-432, THEA-444)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
@@ -11,6 +11,7 @@ export type TournamentStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type TournamentMemberRole = 'commissioner' | 'host' | 'member' | 'player'
 export type SeasonStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type SeasonGameType = 'skins' | 'nassau_front' | 'nassau_back' | 'nassau_overall'
+export type RemoteRivalryStatus = 'waiting' | 'active' | 'completed' | 'incomplete'
 
 export interface Database {
   public: {
@@ -765,6 +766,88 @@ export interface Database {
           }
         ]
       }
+      remote_rivalries: {
+        Row: {
+          id: string
+          challenger_id: string
+          opponent_id: string
+          challenger_round_id: string | null
+          opponent_round_id: string | null
+          challenger_course_name: string | null
+          challenger_course_rating: number | null
+          challenger_slope_rating: number | null
+          opponent_course_name: string | null
+          opponent_course_rating: number | null
+          opponent_slope_rating: number | null
+          hole_count: 9 | 18
+          status: RemoteRivalryStatus
+          expires_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          challenger_id: string
+          opponent_id: string
+          challenger_round_id?: string | null
+          opponent_round_id?: string | null
+          challenger_course_name?: string | null
+          challenger_course_rating?: number | null
+          challenger_slope_rating?: number | null
+          opponent_course_name?: string | null
+          opponent_course_rating?: number | null
+          opponent_slope_rating?: number | null
+          hole_count?: 9 | 18
+          status?: RemoteRivalryStatus
+          expires_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          challenger_round_id?: string | null
+          opponent_round_id?: string | null
+          challenger_course_name?: string | null
+          challenger_course_rating?: number | null
+          challenger_slope_rating?: number | null
+          opponent_course_name?: string | null
+          opponent_course_rating?: number | null
+          opponent_slope_rating?: number | null
+          status?: RemoteRivalryStatus
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rivalry_scores: {
+        Row: {
+          id: string
+          rivalry_id: string
+          player_id: string
+          hole_number: number
+          gross_score: number
+          par: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          rivalry_id: string
+          player_id: string
+          hole_number: number
+          gross_score: number
+          par: number
+          created_at?: string
+        }
+        Update: {
+          gross_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'rivalry_scores_rivalry_id_fkey'
+            columns: ['rivalry_id']
+            referencedRelation: 'remote_rivalries'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -951,6 +1034,7 @@ export interface Database {
       tournament_member_role: TournamentMemberRole
       season_status: SeasonStatus
       season_game_type: SeasonGameType
+      remote_rivalry_status: RemoteRivalryStatus
     }
   }
 }

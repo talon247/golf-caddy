@@ -224,3 +224,98 @@ export interface JoinGroupRoundError {
 }
 
 // ── Side Games ────────────────────────────────────────────────────────────────
+
+// ── Tournament Mode ───────────────────────────────────────────────────────────
+
+export type TournamentType = 'league' | 'event'
+export type TournamentStatus = 'draft' | 'active' | 'completed' | 'archived'
+export type TournamentMemberRole = 'commissioner' | 'host' | 'member' | 'player'
+export type TournamentFormat = 'stroke' | 'stableford' | 'match'
+
+export interface TournamentEvent {
+  id: string
+  name: string
+  type: TournamentType
+  status: TournamentStatus
+  creator_id: string
+  created_at: string
+  config: TournamentEventConfig | null
+}
+
+export interface TournamentEventConfig {
+  tournament_id: string
+  start_date: string | null
+  end_date: string | null
+  format: TournamentFormat | null
+  field_size: number | null
+  course_id: string | null
+}
+
+export interface TournamentMember {
+  id: string
+  tournament_id: string
+  user_id: string | null
+  role: TournamentMemberRole
+  guest_name: string | null
+  joined_at: string
+  display_name: string
+}
+
+export interface TournamentStanding {
+  tournament_id: string
+  user_id: string
+  rank: number
+  rounds_played: number
+  updated_at: string
+  display_name: string
+  score_to_par: number | null
+  holes_completed: number | null
+}
+
+export interface TournamentRound {
+  id: string
+  tournament_id: string
+  group_round_id: string | null
+  round_id: string | null
+  player_id: string
+  counted_at: string | null
+  voided_at: string | null
+  display_name: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  total_strokes: number | null
+  score_to_par: number | null
+  holes_completed: number | null
+  hole_scores: Record<number, { strokes: number; par: number }> | null
+}
+
+// ── League Mode ───────────────────────────────────────────────────────────────
+
+export interface LeagueConfig {
+  tournament_id: string
+  start_date: string | null
+  end_date: string | null
+  format: TournamentFormat | null
+  points_per_win: number | null
+  points_per_top3: number | null
+  season_name: string | null
+}
+
+export interface LeagueStanding extends TournamentStanding {
+  previous_rank: number | null
+  points: number | null
+}
+
+/** Aggregated view of a round played within a league (one row = one group/solo round) */
+export interface LeagueRoundGroup {
+  key: string
+  group_round_id: string | null
+  played_at: string | null
+  course_name: string | null
+  voided: boolean
+  players: Array<{
+    id: string
+    display_name: string
+    score_to_par: number | null
+    total_strokes: number | null
+  }>
+}

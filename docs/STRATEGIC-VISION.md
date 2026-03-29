@@ -340,3 +340,19 @@ Two golfers compete simultaneously on different courses with results normalized 
 - V4: Side games, rivalry history
 
 **Phase:** 4
+
+---
+
+## Organizational Evolution: The Colony → The Corporation
+
+**The Colony** (current): Scrappy startup phase. Move fast, build fast, prove the concept. Personal accounts, ad-hoc tooling, manual processes where needed. The goal is product-market fit and a user base that loves Golf Caddy.
+
+**The Corporation** (V4 readiness): When the infrastructure, legal, and operations catch up to the ambition. Formal corporate entity (registered, incorporated), separated accounts, proper IT policy, secrets management, 24/7 cloud architecture, legal counsel in place. The transition is triggered by commercial readiness — when we start taking real money, we operate like a real company.
+
+**The trigger for upgrading from Colony to Corporation:**
+- Corporate entity formed (THEA-412 research complete, Brian files)
+- All services migrated off personal accounts to corporate accounts (IT Director, THEA-411)
+- 24/7 cloud-local-cloud architecture operational (THEA-413)
+- Legal counsel active (ToS, Privacy Policy, IP assignment complete)
+
+This is not just an infrastructure upgrade. It's a posture shift. The Colony experiments. The Corporation executes.
