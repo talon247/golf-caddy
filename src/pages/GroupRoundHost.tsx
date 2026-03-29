@@ -483,12 +483,8 @@ export default function GroupRoundHost() {
 
       <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-6 flex flex-col items-center gap-5 shadow-sm">
         {/* Room code */}
-        <div className="flex gap-2">
-          {roomCode.split('').map((digit, i) => (
-            <div key={i} className="w-16 h-20 flex items-center justify-center bg-white border-2 border-[#2d5a27] rounded-xl text-4xl font-black text-[#2d5a27] shadow-sm">
-              {digit}
-            </div>
-          ))}
+        <div className="text-6xl font-black text-[#2d5a27] tracking-widest font-mono text-center">
+          {roomCode}
         </div>
 
         {/* Copy button */}

@@ -3,7 +3,8 @@ import { createTestUser, deleteTestUser } from "./supabase";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL ?? "https://fxnpkaongbnmuxsdnyly.supabase.co";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? "";
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? "";
 
 export interface TestUser {
   id: string;
