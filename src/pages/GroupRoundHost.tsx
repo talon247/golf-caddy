@@ -507,7 +507,7 @@ export default function GroupRoundHost() {
           Waiting for players to join…
         </p>
         <p className="text-xs text-gray-400 text-center mt-1">
-          Live score sync coming soon — each player can log scores in their solo round for now.
+          Share the code or link above so players can join and log their scores in real time.
         </p>
       </div>
 

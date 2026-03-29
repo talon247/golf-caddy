@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { saveGroupRoundRecovery } from '../storage'
@@ -53,6 +53,14 @@ export default function GroupRoundJoin() {
   const setCurrentPlayer = useGroupRoundStore(s => s.setCurrentPlayer)
   const addRound = useAppStore(s => s.addRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
+
+  // Auto-advance to name step when URL contains a valid 4-char room code
+  useEffect(() => {
+    if (urlCode && urlCode.length === 4) {
+      handleCodeSubmit()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleCodeSubmit() {
     const roomCode = code.join('').toUpperCase()

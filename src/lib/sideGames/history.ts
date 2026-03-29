@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
 export interface FriendRivalry {
@@ -100,4 +101,96 @@ export async function fetchSettlementHistory(userId: string): Promise<FriendRiva
   return Array.from(rivalryMap.values()).sort(
     (a, b) => Math.abs(b.netBalance) - Math.abs(a.netBalance),
   )
+}
+
+export type WagerOutcome = 'won' | 'lost' | 'push'
+
+export interface WagerRecord {
+  id: string
+  date: string
+  courseName: string | null
+  gameType: string
+  outcome: WagerOutcome
+  amount: number
+}
+
+interface SideGameResultRow {
+  id: string
+  group_round_id: string
+  game_type: string
+  winner_player_id: string | null
+  loser_player_id: string | null
+  amount_owed: number
+  created_at: string
+  group_round: { course_name: string | null; created_at: string } | null
+}
+
+export async function fetchWagerHistory(userId: string): Promise<WagerRecord[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('side_game_results')
+    .select('id, group_round_id, game_type, winner_player_id, loser_player_id, amount_owed, created_at, group_round:group_rounds(course_name, created_at)')
+    .or(`winner_player_id.eq.${userId},loser_player_id.eq.${userId}`)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  if (!data || data.length === 0) return []
+
+  return (data as SideGameResultRow[]).map(row => {
+    const isPush =
+      (row.winner_player_id === null && row.loser_player_id === null) ||
+      row.amount_owed === 0
+
+    let outcome: WagerOutcome
+    if (isPush) {
+      outcome = 'push'
+    } else if (row.winner_player_id === userId) {
+      outcome = 'won'
+    } else {
+      outcome = 'lost'
+    }
+
+    return {
+      id: row.id,
+      date: row.group_round?.created_at ?? row.created_at,
+      courseName: row.group_round?.course_name ?? null,
+      gameType: row.game_type,
+      outcome,
+      amount: row.amount_owed,
+    }
+  })
+}
+
+export function useWagerHistory(userId: string | null) {
+  const [wagers, setWagers] = useState<WagerRecord[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    fetchWagerHistory(userId)
+      .then(records => {
+        if (!cancelled) setWagers(records)
+      })
+      .catch(() => {
+        if (!cancelled) setError('Failed to load wager history')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [userId])
+
+  const netTotal = wagers.reduce((sum, w) => {
+    if (w.outcome === 'won') return sum + w.amount
+    if (w.outcome === 'lost') return sum - w.amount
+    return sum
+  }, 0)
+
+  return { wagers, loading, error, netTotal }
 }

@@ -34,7 +34,6 @@ export default function Friends() {
   const [activeTab, setActiveTab] = useState<Tab>('friends')
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showUsernameSetup, setShowUsernameSetup] = useState(false)
-  const [profileLoaded, setProfileLoaded] = useState(false)
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
@@ -53,27 +52,25 @@ export default function Friends() {
     loadPendingRequests()
   }, [isAuthenticated, loadFriends, loadPendingRequests])
 
-  // Fetch profile from Supabase on mount so we have the latest username state
+  // Fetch profile from Supabase on mount to get the latest username.
+  // Intentionally omits profile?.username from deps: AuthProvider periodically
+  // overwrites the store profile (without username) on auth events, which would
+  // re-trigger this effect and falsely re-show the setup modal.
+  // We derive showUsernameSetup from the fetch result directly, not from store state.
   useEffect(() => {
     if (!isAuthenticated || !userId) return
+    // Fast path: username already in store (e.g. navigating back to this page)
+    if (profile?.username) return
     let cancelled = false
-    if (profile?.username) {
-      setProfileLoaded(true)
-      return
-    }
     fetchProfile(userId).then(fetched => {
       if (cancelled) return
       if (fetched) setProfile(fetched)
-      setProfileLoaded(true)
+      // Only show setup when we confirmed username is absent; don't show on fetch failure
+      if (fetched !== null) setShowUsernameSetup(!fetched.username)
     })
     return () => { cancelled = true }
-  }, [isAuthenticated, userId, profile?.username, setProfile])
-
-  // Show username setup only after profile has been loaded from Supabase and username is still missing
-  useEffect(() => {
-    if (!isAuthenticated || !profileLoaded) return
-    setShowUsernameSetup(!profile?.username)
-  }, [isAuthenticated, profileLoaded, profile?.username])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, userId])
 
   // Debounced search
   useEffect(() => {
@@ -330,7 +327,7 @@ export default function Friends() {
                   ) : (
                     <button
                       onClick={() => handleSendRequest(result.username, result.userId)}
-                      disabled={sendingTo === result.userId}
+                      disabled={!isAuthenticated || sendingTo === result.userId}
                       className="text-xs bg-[#2d5a27] text-white rounded-lg px-3 py-1.5 font-semibold active:scale-95 transition-transform disabled:opacity-50 flex-shrink-0"
                     >
                       {sendingTo === result.userId ? '…' : 'Add'}

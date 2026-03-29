@@ -41,6 +41,10 @@ export async function getPendingRequests(): Promise<FriendRequest[]> {
 // ── Send / respond / remove ────────────────────────────────────────────────
 
 export async function sendFriendRequest(addresseeUsername: string): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession()
+  if (!sessionData.session) {
+    throw new Error('You must be signed in to send friend requests.')
+  }
   const { data, error } = await supabase.rpc('send_friend_request', {
     p_addressee_username: addresseeUsername,
   })

@@ -5,9 +5,12 @@ import { fetchRounds, syncRoundToSupabase } from '../lib/sync'
 import { addToQueue } from '../lib/syncQueue'
 import { SyncIndicator } from '../components/SyncIndicator'
 import ConfirmModal from '../components/ConfirmModal'
+import WagerHistoryList from '../components/WagerHistoryList'
+import { useWagerHistory } from '../lib/sideGames/history'
 import type { Round } from '../types'
 
 type HoleFilter = 'all' | '18' | '9'
+type MainTab = 'rounds' | 'wagers'
 
 function LockIcon({ className }: { className?: string }) {
   return (
@@ -59,6 +62,11 @@ export default function History() {
   const markRoundError = useAppStore(s => s.markRoundError)
 
   const navigate = useNavigate()
+
+  const [activeTab, setActiveTab] = useState<MainTab>('rounds')
+  const { wagers, loading: wagersLoading, error: wagersError, netTotal } = useWagerHistory(
+    isAuthenticated ? (userId ?? null) : null,
+  )
 
   const PAGE_SIZE = 50
 
@@ -252,7 +260,7 @@ export default function History() {
         <div className="flex items-center gap-3 mb-4">
           <Link to="/profile" className="text-[#2d5a27] font-semibold text-sm">← Back</Link>
           <h1 className="text-xl font-black text-[#1a1a1a] flex-1">Round History</h1>
-          {!loading && mergedRounds.length > 0 && (
+          {activeTab === 'rounds' && !loading && mergedRounds.length > 0 && (
             <button
               onClick={handleEditToggle}
               className={`text-sm font-semibold px-3 py-1.5 rounded-xl border transition-colors ${
@@ -266,18 +274,46 @@ export default function History() {
           )}
         </div>
 
-        {/* Filter pills */}
-        <div className="flex gap-2">
-          <button className={filterBtnClass(filter === 'all')} onClick={() => handleFilterChange('all')}>
-            All ({allCount})
-          </button>
-          <button className={filterBtnClass(filter === '18')} onClick={() => handleFilterChange('18')}>
-            18-hole ({count18})
-          </button>
-          <button className={filterBtnClass(filter === '9')} onClick={() => handleFilterChange('9')}>
-            9-hole ({count9})
-          </button>
-        </div>
+        {/* Rounds / Wagers ribbon — signed-in users only */}
+        {isAuthenticated && (
+          <div className="flex gap-1 mb-3 bg-[#e5e1d8] rounded-2xl p-1">
+            <button
+              onClick={() => setActiveTab('rounds')}
+              className={`flex-1 py-2 text-sm font-bold rounded-xl transition-colors ${
+                activeTab === 'rounds'
+                  ? 'bg-white text-[#1a1a1a] shadow-sm'
+                  : 'text-[#6b6b6b]'
+              }`}
+            >
+              Rounds
+            </button>
+            <button
+              onClick={() => setActiveTab('wagers')}
+              className={`flex-1 py-2 text-sm font-bold rounded-xl transition-colors ${
+                activeTab === 'wagers'
+                  ? 'bg-white text-[#1a1a1a] shadow-sm'
+                  : 'text-[#6b6b6b]'
+              }`}
+            >
+              Wagers
+            </button>
+          </div>
+        )}
+
+        {/* Filter pills — rounds tab only */}
+        {activeTab === 'rounds' && (
+          <div className="flex gap-2">
+            <button className={filterBtnClass(filter === 'all')} onClick={() => handleFilterChange('all')}>
+              All ({allCount})
+            </button>
+            <button className={filterBtnClass(filter === '18')} onClick={() => handleFilterChange('18')}>
+              18-hole ({count18})
+            </button>
+            <button className={filterBtnClass(filter === '9')} onClick={() => handleFilterChange('9')}>
+              9-hole ({count9})
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Guest banner */}
@@ -289,8 +325,8 @@ export default function History() {
         </div>
       )}
 
-      {/* Batch clear button for local-only rounds */}
-      {localOnlyRounds.length > 0 && !loading && !isEditMode && (
+      {/* Batch clear button for local-only rounds — rounds tab only */}
+      {activeTab === 'rounds' && localOnlyRounds.length > 0 && !loading && !isEditMode && (
         <div className="px-5 mb-3">
           <button
             onClick={() => setShowBatchClear(true)}
@@ -303,7 +339,14 @@ export default function History() {
 
       {/* Content */}
       <div className="flex flex-col flex-1 overflow-y-auto px-5 pb-20 gap-2">
-        {loading ? (
+        {activeTab === 'wagers' ? (
+          <WagerHistoryList
+            wagers={wagers}
+            netTotal={netTotal}
+            loading={wagersLoading}
+            error={wagersError}
+          />
+        ) : loading ? (
           <div className="flex flex-1 items-center justify-center py-16">
             <div className="flex flex-col items-center gap-3 text-[#6b6b6b]">
               <svg className="animate-spin w-8 h-8 text-[#2d5a27]" fill="none" viewBox="0 0 24 24">
