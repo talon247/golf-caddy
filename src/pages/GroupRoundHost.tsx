@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import QRCode from 'react-qr-code'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useGroupRoundStore } from '../store/groupRoundStore'
 import { useLeaderboardStore } from '../store/leaderboardStore'
@@ -19,12 +19,17 @@ function generateRoomCode(): string {
 
 export default function GroupRoundHost() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tournamentName = searchParams.get('tournamentName')
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [roomCode, setRoomCode] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [groupRoundId, setGroupRoundId] = useState<string | null>(null)
   const [phase, setPhase] = useState<'lobby' | 'setup' | 'side_games'>('lobby')
   const [hostName, setHostName] = useState('')
+  const [spectatorsEnabled, setSpectatorsEnabled] = useState(false)
+  const [spectatorSideGamesVisible, setSpectatorSideGamesVisible] = useState(false)
+  const [spectatorSettingsSaving, setSpectatorSettingsSaving] = useState(false)
   const [courseName, setCourseName] = useState('')
   const [holeCount, setHoleCount] = useState<9 | 18>(18)
   const [pars, setPars] = useState<number[]>(Array(18).fill(4))
@@ -47,6 +52,7 @@ export default function GroupRoundHost() {
 
   const setGroupRound = useGroupRoundStore((s) => s.setGroupRound)
   const setSideGameConfig = useGroupRoundStore((s) => s.setSideGameConfig)
+  const setTournamentContext = useGroupRoundStore((s) => s.setTournamentContext)
   const resetLeaderboard = useLeaderboardStore((s) => s.reset)
   const addRound = useAppStore((s) => s.addRound)
   const setActiveRoundId = useAppStore((s) => s.setActiveRoundId)
@@ -54,6 +60,13 @@ export default function GroupRoundHost() {
   useEffect(() => {
     if (createdRef.current) return
     createdRef.current = true
+
+    // Capture tournament context from URL at mount time (stable, won't change)
+    const initTournamentId = new URLSearchParams(window.location.search).get('tournamentId')
+    const initTournamentName = new URLSearchParams(window.location.search).get('tournamentName')
+    if (initTournamentId) {
+      setTournamentContext(initTournamentId, initTournamentName)
+    }
 
     async function create() {
       let code = generateRoomCode()
@@ -116,7 +129,7 @@ export default function GroupRoundHost() {
         supabase.removeChannel(channelRef.current)
       }
     }
-  }, [])
+  }, [setTournamentContext]) // eslint-disable-line react-hooks/exhaustive-deps -- runs once; setTournamentContext is stable
 
   // Debounced course search
   useEffect(() => {
@@ -277,6 +290,44 @@ export default function GroupRoundHost() {
       } catch { /* ignore */ }
     }
   }, [joinUrl])
+
+  const spectatorUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/watch/${roomCode}`
+
+  const handleSpectatorToggle = useCallback(async (enabled: boolean) => {
+    setSpectatorsEnabled(enabled)
+    if (!groupRoundId) return
+    setSpectatorSettingsSaving(true)
+    try {
+      await supabase
+        .from('group_rounds')
+        .update({ spectators_enabled: enabled })
+        .eq('id', groupRoundId)
+    } catch { /* non-fatal */ }
+    finally { setSpectatorSettingsSaving(false) }
+  }, [groupRoundId])
+
+  const handleSideGameVisibilityToggle = useCallback(async (visible: boolean) => {
+    setSpectatorSideGamesVisible(visible)
+    if (!groupRoundId) return
+    try {
+      await supabase
+        .from('group_rounds')
+        .update({ spectator_side_games_visible: visible })
+        .eq('id', groupRoundId)
+    } catch { /* non-fatal */ }
+  }, [groupRoundId])
+
+  const handleShareSpectatorLink = useCallback(async () => {
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: 'Watch our golf round live', url: spectatorUrl })
+      } catch { /* user cancelled or error */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(spectatorUrl)
+      } catch { /* ignore */ }
+    }
+  }, [spectatorUrl])
 
   const handleParChange = useCallback((index: number, par: number) => {
     setPars(prev => {
@@ -495,6 +546,12 @@ export default function GroupRoundHost() {
       <div className="text-center pt-2">
         <h1 className="text-2xl font-black text-forest">Group Round</h1>
         <p className="text-warm-gray text-sm mt-0.5">Share this code with your playing partners</p>
+        {tournamentName && (
+          <div className="mt-2 inline-flex items-center gap-1.5 bg-[#eaf4e8] text-[#2d5a27] text-xs font-semibold px-3 py-1.5 rounded-full">
+            <span>🏆</span>
+            <span>Part of {tournamentName}</span>
+          </div>
+        )}
       </div>
 
       <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-6 flex flex-col items-center gap-5 shadow-sm">
@@ -534,6 +591,65 @@ export default function GroupRoundHost() {
         <p className="text-xs text-gray-400 text-center mt-1">
           Scan the QR code or share the link so players can join and log their scores in real time.
         </p>
+      </div>
+
+      {/* Spectator controls */}
+      <div className="bg-white rounded-2xl border border-[#e5e1d8] p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Allow spectators</p>
+            <p className="text-xs text-gray-400 mt-0.5">Share a watch-only link</p>
+          </div>
+          <button
+            type="button"
+            aria-pressed={spectatorsEnabled}
+            onClick={() => handleSpectatorToggle(!spectatorsEnabled)}
+            disabled={spectatorSettingsSaving}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#2d5a27] focus:ring-offset-1 disabled:opacity-60 ${
+              spectatorsEnabled ? 'bg-[#2d5a27]' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                spectatorsEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {spectatorsEnabled && (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Show side game standings</p>
+                <p className="text-xs text-gray-400 mt-0.5">Visible to spectators</p>
+              </div>
+              <button
+                type="button"
+                aria-pressed={spectatorSideGamesVisible}
+                onClick={() => handleSideGameVisibilityToggle(!spectatorSideGamesVisible)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#2d5a27] focus:ring-offset-1 ${
+                  spectatorSideGamesVisible ? 'bg-[#2d5a27]' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    spectatorSideGamesVisible ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleShareSpectatorLink}
+              className="w-full py-3 rounded-xl bg-[#f5f0e8] border border-[#e5e1d8] text-[#2d5a27] font-semibold text-sm touch-target flex items-center justify-center gap-2"
+            >
+              <span>Share for Spectators</span>
+              <span className="text-xs text-gray-400 font-normal">/watch/{roomCode}</span>
+            </button>
+          </>
+        )}
       </div>
 
       <div className="mt-auto flex gap-3">

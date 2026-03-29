@@ -271,6 +271,7 @@ export interface Database {
           side_games_enabled?: boolean
           spectators_enabled?: boolean
           spectator_side_games_visible?: boolean
+          tournament_id?: string | null
           expires_at?: string
           created_at?: string
           updated_at?: string
