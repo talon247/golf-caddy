@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417, THEA-418)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417, THEA-418, THEA-431, THEA-432)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
@@ -9,6 +9,8 @@ export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked'
 export type TournamentType = 'league' | 'event'
 export type TournamentStatus = 'draft' | 'active' | 'completed' | 'archived'
 export type TournamentMemberRole = 'commissioner' | 'host' | 'member' | 'player'
+export type SeasonStatus = 'draft' | 'active' | 'completed' | 'archived'
+export type SeasonGameType = 'skins' | 'nassau_front' | 'nassau_back' | 'nassau_overall'
 
 export interface Database {
   public: {
@@ -652,6 +654,104 @@ export interface Database {
           }
         ]
       }
+      seasons: {
+        Row: {
+          id: string
+          name: string
+          creator_id: string
+          status: SeasonStatus
+          start_date: string | null
+          end_date: string | null
+          points_config: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          creator_id: string
+          status?: SeasonStatus
+          start_date?: string | null
+          end_date?: string | null
+          points_config?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          status?: SeasonStatus
+          start_date?: string | null
+          end_date?: string | null
+          points_config?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      season_members: {
+        Row: {
+          season_id: string
+          user_id: string
+          points_balance: number
+          joined_at: string
+          left_at: string | null
+        }
+        Insert: {
+          season_id: string
+          user_id: string
+          points_balance?: number
+          joined_at?: string
+          left_at?: string | null
+        }
+        Update: {
+          points_balance?: number
+          left_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'season_members_season_id_fkey'
+            columns: ['season_id']
+            referencedRelation: 'seasons'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      season_transactions: {
+        Row: {
+          id: string
+          season_id: string
+          group_round_id: string | null
+          payer_user_id: string
+          payee_user_id: string
+          points: number
+          game_type: SeasonGameType
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          season_id: string
+          group_round_id?: string | null
+          payer_user_id: string
+          payee_user_id: string
+          points: number
+          game_type: SeasonGameType
+          created_at?: string
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: 'season_transactions_season_id_fkey'
+            columns: ['season_id']
+            referencedRelation: 'seasons'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'season_transactions_group_round_id_fkey'
+            columns: ['group_round_id']
+            referencedRelation: 'group_rounds'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -787,6 +887,41 @@ export interface Database {
         }
         Returns: Json
       }
+      create_season: {
+        Args: {
+          p_name: string
+          p_start_date?: string | null
+          p_end_date?: string | null
+          p_points_config?: Json | null
+        }
+        Returns: Json
+      }
+      join_season: {
+        Args: {
+          p_season_id: string
+        }
+        Returns: Json
+      }
+      leave_season: {
+        Args: {
+          p_season_id: string
+        }
+        Returns: Json
+      }
+      settle_season_points: {
+        Args: {
+          p_season_id: string
+          p_group_round_id?: string | null
+          p_settlements?: Json
+        }
+        Returns: Json
+      }
+      complete_season: {
+        Args: {
+          p_season_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       round_status: RoundStatus
@@ -795,6 +930,8 @@ export interface Database {
       tournament_type: TournamentType
       tournament_status: TournamentStatus
       tournament_member_role: TournamentMemberRole
+      season_status: SeasonStatus
+      season_game_type: SeasonGameType
     }
   }
 }
