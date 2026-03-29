@@ -5,7 +5,6 @@ import { fetchRounds, syncRoundToSupabase } from '../lib/sync'
 import { addToQueue } from '../lib/syncQueue'
 import { SyncIndicator } from '../components/SyncIndicator'
 import ConfirmModal from '../components/ConfirmModal'
-import SwipeToDelete from '../components/SwipeToDelete'
 import type { Round } from '../types'
 
 type HoleFilter = 'all' | '18' | '9'
@@ -59,7 +58,6 @@ export default function History() {
   const markRoundSynced = useAppStore(s => s.markRoundSynced)
   const markRoundError = useAppStore(s => s.markRoundError)
 
-
   const navigate = useNavigate()
 
   const PAGE_SIZE = 50
@@ -71,8 +69,10 @@ export default function History() {
   const [cloudOffset, setCloudOffset] = useState(0)
   const [hasMoreCloud, setHasMoreCloud] = useState(false)
   const [lockedModalOpen, setLockedModalOpen] = useState(false)
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [showBatchClear, setShowBatchClear] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set())
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false)
   const deleteRound = useAppStore(s => s.deleteRound)
 
   useEffect(() => {
@@ -156,7 +156,8 @@ export default function History() {
   }
 
   function handleRowTap(round: Round) {
-    navigate(`/summary/${round.id}`)
+    if (isEditMode) return
+    navigate(`/summary/${round.id}`, { state: { round } })
   }
 
   async function handleRetry(roundId: string) {
@@ -178,20 +179,48 @@ export default function History() {
     }
   }
 
-  function handleDeleteRequest(round: Round) {
+  function handleEditToggle() {
+    if (isEditMode) {
+      // Cancel — discard pending deletes
+      setPendingDeleteIds(new Set())
+      setIsEditMode(false)
+    } else {
+      setIsEditMode(true)
+    }
+  }
+
+  function handleMinusTap(round: Round) {
     if (round.isLocked) {
       setLockedModalOpen(true)
       return
     }
-    setDeleteTargetId(round.id)
+    setPendingDeleteIds(prev => {
+      const next = new Set(prev)
+      if (next.has(round.id)) {
+        next.delete(round.id)
+      } else {
+        next.add(round.id)
+      }
+      return next
+    })
   }
 
-  function confirmDelete() {
-    if (deleteTargetId) {
-      deleteRound(deleteTargetId)
-      setMergedRounds(prev => prev.filter(r => r.id !== deleteTargetId))
-      setDeleteTargetId(null)
+  function handleSave() {
+    if (pendingDeleteIds.size === 0) {
+      setIsEditMode(false)
+      return
     }
+    setShowSaveConfirm(true)
+  }
+
+  function confirmSave() {
+    for (const id of pendingDeleteIds) {
+      deleteRound(id)
+    }
+    setMergedRounds(prev => prev.filter(r => !pendingDeleteIds.has(r.id)))
+    setPendingDeleteIds(new Set())
+    setIsEditMode(false)
+    setShowSaveConfirm(false)
   }
 
   // Identify local-only rounds (not synced to cloud)
@@ -222,7 +251,19 @@ export default function History() {
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-center gap-3 mb-4">
           <Link to="/profile" className="text-[#2d5a27] font-semibold text-sm">← Back</Link>
-          <h1 className="text-xl font-black text-[#1a1a1a]">Round History</h1>
+          <h1 className="text-xl font-black text-[#1a1a1a] flex-1">Round History</h1>
+          {!loading && mergedRounds.length > 0 && (
+            <button
+              onClick={handleEditToggle}
+              className={`text-sm font-semibold px-3 py-1.5 rounded-xl border transition-colors ${
+                isEditMode
+                  ? 'text-[#6b6b6b] border-[#e5e1d8] bg-white'
+                  : 'text-[#2d5a27] border-[#2d5a27] bg-transparent'
+              }`}
+            >
+              {isEditMode ? 'Cancel' : 'Edit'}
+            </button>
+          )}
         </div>
 
         {/* Filter pills */}
@@ -249,7 +290,7 @@ export default function History() {
       )}
 
       {/* Batch clear button for local-only rounds */}
-      {localOnlyRounds.length > 0 && !loading && (
+      {localOnlyRounds.length > 0 && !loading && !isEditMode && (
         <div className="px-5 mb-3">
           <button
             onClick={() => setShowBatchClear(true)}
@@ -294,59 +335,76 @@ export default function History() {
               const status = syncStatus[round.id] ?? 'local'
               const teeLabel = round.teeSet ?? round.tees
               const locked = round.isLocked === true
-
-              const card = (
-                <button
-                  onClick={() => handleRowTap(round)}
-                  className={`w-full text-left rounded-2xl px-4 py-3.5 shadow-sm border active:scale-[0.98] transition-transform ${
-                    locked
-                      ? 'bg-[#f5f0e8] border-[#d5d0c8] opacity-90'
-                      : 'bg-white border-[#e5e1d8]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    {/* Left: date + course + lock */}
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-xs font-semibold text-[#6b6b6b]">
-                          {formatDate(round.completedAt ?? round.startedAt)}
-                        </span>
-                        {locked && (
-                          <LockIcon className="w-3.5 h-3.5 text-[#6b6b6b]" />
-                        )}
-                      </div>
-                      <span className="text-[#1a1a1a] font-bold text-sm truncate">
-                        {round.courseName}
-                      </span>
-                      <span className="text-xs text-[#6b6b6b] mt-0.5">
-                        {round.holeCount}H · {teeLabel}
-                      </span>
-                    </div>
-
-                    {/* Right: score + sync */}
-                    <div className="flex flex-col items-end shrink-0 gap-1">
-                      <span className={`text-lg ${vsParClass}`}>{vsParLabel}</span>
-                      <SyncIndicator
-                        status={status}
-                        onRetry={status === 'error' ? () => handleRetry(round.id) : undefined}
-                      />
-                    </div>
-                  </div>
-                </button>
-              )
-
-              if (locked) {
-                return <div key={round.id}>{card}</div>
-              }
+              const markedForDelete = pendingDeleteIds.has(round.id)
 
               return (
-                <SwipeToDelete key={round.id} onDelete={() => handleDeleteRequest(round)}>
-                  {card}
-                </SwipeToDelete>
+                <div key={round.id} className="flex items-center gap-2">
+                  {/* Edit mode: minus button */}
+                  {isEditMode && (
+                    <button
+                      onClick={() => handleMinusTap(round)}
+                      aria-label={locked ? 'Round is locked' : markedForDelete ? 'Unmark for deletion' : 'Mark for deletion'}
+                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        locked
+                          ? 'bg-[#e5e1d8] text-[#aaa] cursor-default'
+                          : markedForDelete
+                            ? 'bg-red-600 text-white'
+                            : 'bg-red-100 text-red-600'
+                      }`}
+                    >
+                      {locked ? (
+                        <LockIcon className="w-4 h-4" />
+                      ) : (
+                        <span className="text-xl leading-none pb-0.5">−</span>
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => handleRowTap(round)}
+                    disabled={isEditMode}
+                    className={`flex-1 text-left rounded-2xl px-4 py-3.5 shadow-sm border transition-all ${
+                      locked
+                        ? 'bg-[#f5f0e8] border-[#d5d0c8] opacity-90'
+                        : markedForDelete
+                          ? 'bg-red-50 border-red-300 opacity-70'
+                          : 'bg-white border-[#e5e1d8] active:scale-[0.98]'
+                    } ${isEditMode ? 'cursor-default' : 'transition-transform'}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Left: date + course + lock */}
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-xs font-semibold text-[#6b6b6b]">
+                            {formatDate(round.completedAt ?? round.startedAt)}
+                          </span>
+                          {locked && (
+                            <LockIcon className="w-3.5 h-3.5 text-[#6b6b6b]" />
+                          )}
+                        </div>
+                        <span className={`font-bold text-sm truncate ${markedForDelete ? 'line-through text-[#6b6b6b]' : 'text-[#1a1a1a]'}`}>
+                          {round.courseName}
+                        </span>
+                        <span className="text-xs text-[#6b6b6b] mt-0.5">
+                          {round.holeCount}H · {teeLabel}
+                        </span>
+                      </div>
+
+                      {/* Right: score + sync */}
+                      <div className="flex flex-col items-end shrink-0 gap-1">
+                        <span className={`text-lg ${vsParClass}`}>{vsParLabel}</span>
+                        <SyncIndicator
+                          status={status}
+                          onRetry={status === 'error' && !isEditMode ? () => handleRetry(round.id) : undefined}
+                        />
+                      </div>
+                    </div>
+                  </button>
+                </div>
               )
             })}
 
-            {hasMoreCloud && (
+            {hasMoreCloud && !isEditMode && (
               <button
                 onClick={handleLoadMore}
                 disabled={loadingMore}
@@ -358,6 +416,28 @@ export default function History() {
           </>
         )}
       </div>
+
+      {/* Edit mode save bar */}
+      {isEditMode && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#e5e1d8] px-5 py-4 flex gap-3">
+          <button
+            onClick={handleEditToggle}
+            className="flex-1 border border-[#e5e1d8] text-[#6b6b6b] rounded-xl py-3 font-semibold text-base min-h-[48px] active:scale-95 transition-transform"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className={`flex-1 rounded-xl py-3 font-bold text-base min-h-[48px] active:scale-95 transition-transform ${
+              pendingDeleteIds.size > 0
+                ? 'bg-red-600 text-white'
+                : 'bg-[#2d5a27] text-white'
+            }`}
+          >
+            {pendingDeleteIds.size > 0 ? `Delete (${pendingDeleteIds.size})` : 'Done'}
+          </button>
+        </div>
+      )}
 
       {/* Locked round info modal */}
       {lockedModalOpen && (
@@ -380,16 +460,16 @@ export default function History() {
         </div>
       )}
 
-      {/* Delete confirmation modal */}
-      {deleteTargetId && (
+      {/* Save confirmation modal */}
+      {showSaveConfirm && (
         <ConfirmModal
-          title="Delete Round"
-          message="Delete this round? This cannot be undone."
+          title="Delete Rounds"
+          message={`Delete ${pendingDeleteIds.size} round${pendingDeleteIds.size === 1 ? '' : 's'}? This cannot be undone.`}
           confirmLabel="Delete"
           cancelLabel="Cancel"
           destructive
-          onConfirm={confirmDelete}
-          onCancel={() => setDeleteTargetId(null)}
+          onConfirm={confirmSave}
+          onCancel={() => setShowSaveConfirm(false)}
         />
       )}
 

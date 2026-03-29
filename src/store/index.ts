@@ -434,6 +434,9 @@ export const useAppStore = create<StoreState>((set, get) => ({
     }
 
     const wasSynced = state.syncStatus[roundId] === 'synced'
+    // Cloud-only rounds (fetched from Supabase but not in local store) have no
+    // syncStatus entry. Treat them as synced so the server delete fires.
+    const isCloudOnly = !round && state.isAuthenticated
 
     // Remove from sync tracking (covers pending, error, local, synced)
     const syncStatus = { ...state.syncStatus }
@@ -445,8 +448,8 @@ export const useAppStore = create<StoreState>((set, get) => ({
     set({ rounds, activeRoundId, syncStatus, syncQueue })
     persist({ ...get(), rounds, activeRoundId, syncStatus })
 
-    // Fire-and-forget soft-delete in Supabase for synced rounds
-    if (wasSynced && state.isAuthenticated) {
+    // Fire-and-forget soft-delete in Supabase for synced and cloud-only rounds
+    if ((wasSynced || isCloudOnly) && state.isAuthenticated) {
       void deleteRoundInSupabase(roundId)
     }
   },

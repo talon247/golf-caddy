@@ -1,7 +1,8 @@
 
 import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store'
+import type { Round } from '../types'
 import { calcTotalStrokes, calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
@@ -28,6 +29,7 @@ function scoreColor(strokes: number, par: number): string {
 export default function Summary() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const rounds = useAppStore(s => s.rounds)
   const bag = useAppStore(s => s.clubBag)
   const deleteRound = useAppStore(s => s.deleteRound)
@@ -37,7 +39,10 @@ export default function Summary() {
   const sideGameConfig = useGroupRoundStore(s => s.sideGameConfig)
 
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
-  const round = rounds.find(r => r.id === id)
+  // Cloud-only rounds are not in the Zustand store; fall back to navigation state
+  // passed by History.tsx when the user taps a round row.
+  const navRound = (location.state as { round?: Round } | null)?.round
+  const round = rounds.find(r => r.id === id) ?? (navRound?.id === id ? navRound : undefined)
 
   if (!round) {
     return (
