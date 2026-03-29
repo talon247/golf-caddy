@@ -500,7 +500,7 @@ export default function GroupRoundHost() {
       <div className="bg-[#faf7f2] rounded-2xl border border-[#e5e1d8] p-6 flex flex-col items-center gap-5 shadow-sm">
         {/* QR code */}
         <div className="bg-white p-3 rounded-xl border border-[#e5e1d8]">
-          <QRCode value={joinUrl} size={180} />
+          {roomCode && <QRCode value={joinUrl} size={180} />}
         </div>
 
         {/* Room code */}
