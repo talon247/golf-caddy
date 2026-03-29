@@ -39,6 +39,14 @@ jobs:
           DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test — multiplayer host flow
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ steps.deploy.outputs.url }}
+        run: npm run test:smoke
+
       - name: Notify Discord — Announcements (public)
         continue-on-error: true
         run: |

@@ -182,18 +182,30 @@ export default function Home() {
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link
             to="/setup"
-            className="flex items-center justify-center bg-gold text-white py-5 rounded-2xl text-xl font-bold shadow-md touch-target"
+            className="flex flex-col items-center justify-center bg-gold text-white py-5 rounded-2xl font-bold shadow-md touch-target gap-1"
           >
-            Start New Round
+            <span className="text-2xl">⛳</span>
+            <span className="text-base">Solo Round</span>
+            <span className="text-xs font-normal opacity-80">Track your game</span>
           </Link>
           <Link
             to="/group-round"
-            className="flex items-center justify-center bg-forest text-cream py-4 rounded-2xl text-base font-bold shadow-md touch-target"
+            className="flex flex-col items-center justify-center bg-forest text-cream py-5 rounded-2xl font-bold shadow-md touch-target gap-1"
           >
-            👥 Group Round
+            <span className="text-2xl">👥</span>
+            <span className="text-base">Group Round</span>
+            <span className="text-xs font-normal opacity-80">Play with friends</span>
+          </Link>
+          <Link
+            to="/tournament/create"
+            className="flex flex-col items-center justify-center bg-forest-mid text-cream py-5 rounded-2xl font-bold shadow-md touch-target gap-1"
+          >
+            <span className="text-2xl">🏆</span>
+            <span className="text-base">Tournament</span>
+            <span className="text-xs font-normal opacity-80">League or Event</span>
           </Link>
         </div>
       )}

@@ -28,6 +28,7 @@ const History = lazy(() => import('./pages/History'))
 const Analytics = lazy(() => import('./pages/Analytics'))
 const Friends = lazy(() => import('./pages/Friends'))
 const SettlementHistory = lazy(() => import('./pages/SettlementHistory'))
+const TournamentCreate = lazy(() => import('./pages/TournamentCreate'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function AppInner() {
@@ -66,6 +67,7 @@ function App() {
             <Route path="/analytics" element={<RouteErrorBoundary routeName="Analytics"><Analytics /></RouteErrorBoundary>} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/settlement-history" element={<SettlementHistory />} />
+            <Route path="/tournament/create" element={<TournamentCreate />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
