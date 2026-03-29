@@ -251,6 +251,8 @@ export interface Database {
           course_rating: number | null
           slope_rating: number | null
           side_games_enabled: boolean
+          spectators_enabled: boolean
+          spectator_side_games_visible: boolean
           expires_at: string
           created_at: string
           updated_at: string
@@ -267,6 +269,8 @@ export interface Database {
           course_rating?: number | null
           slope_rating?: number | null
           side_games_enabled?: boolean
+          spectators_enabled?: boolean
+          spectator_side_games_visible?: boolean
           expires_at?: string
           created_at?: string
           updated_at?: string
@@ -279,6 +283,8 @@ export interface Database {
           course_rating?: number | null
           slope_rating?: number | null
           side_games_enabled?: boolean
+          spectators_enabled?: boolean
+          spectator_side_games_visible?: boolean
           host_user_id?: string | null
           updated_at?: string
         }
@@ -627,6 +633,8 @@ export interface Database {
           points: number
           rank: number
           rounds_played: number
+          total_game_wins: number
+          last_round_at: string | null
           updated_at: string
         }
         Insert: {
@@ -637,12 +645,16 @@ export interface Database {
           points?: number
           rank?: number
           rounds_played?: number
+          total_game_wins?: number
+          last_round_at?: string | null
           updated_at?: string
         }
         Update: {
           points?: number
           rank?: number
           rounds_played?: number
+          total_game_wins?: number
+          last_round_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -880,6 +892,12 @@ export interface Database {
           p_reason?: string | null
         }
         Returns: Json
+      }
+      recompute_tournament_standings: {
+        Args: {
+          p_tournament_id: string
+        }
+        Returns: undefined
       }
       lock_event_results: {
         Args: {
