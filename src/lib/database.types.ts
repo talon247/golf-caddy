@@ -346,6 +346,23 @@ export interface Database {
         }
         Relationships: []
       }
+      join_rate_limits: {
+        Row: {
+          session_key: string
+          attempt_count: number
+          window_start: string
+        }
+        Insert: {
+          session_key: string
+          attempt_count?: number
+          window_start?: string
+        }
+        Update: {
+          attempt_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           id: string
@@ -456,6 +473,7 @@ export interface Database {
         Args: {
           p_room_code: string
           p_player_name: string
+          p_session_key?: string
         }
         Returns: Json
       }
