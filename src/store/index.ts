@@ -8,7 +8,10 @@ import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
 import { calcTotalStrokes } from '../utils/scoring'
-import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase, lockGroupRoundRounds } from '../lib/sync'
+import { syncRoundToSupabase, acquireSyncLock, releaseSyncLock, abandonRoundInSupabase, deleteRoundInSupabase, lockGroupRoundRounds, markGroupRoundCompleted } from '../lib/sync'
+import { computeSideGameState } from '../hooks/useSideGameState'
+import { buildSideGameResults, persistSideGameResults, persistSettlementHistory } from '../lib/sideGames/persist'
+import { aggregateSettlement } from '../lib/sideGames/settlement'
 import { addToQueue, getQueue, processSyncQueue } from '../lib/syncQueue'
 import { useToastStore } from './toastStore'
 
@@ -380,6 +383,24 @@ export const useAppStore = create<StoreState>((set, get) => ({
     const hasSideGames = groupState.sideGameConfig?.sideGamesEnabled === true
     const groupRoundId = groupState.groupRound?.id
 
+    // Capture side game data before stores are cleared
+    const leaderboardPlayers = useLeaderboardStore.getState().players
+    const capturedSideGameState = hasSideGames && groupState.sideGameConfig
+      ? computeSideGameState(leaderboardPlayers, groupState.sideGameConfig)
+      : null
+    const capturedPlayerIds = leaderboardPlayers.map(p => p.playerId)
+    const capturedSideGameResults = capturedSideGameState && groupState.sideGameConfig
+      ? buildSideGameResults(capturedSideGameState, groupState.sideGameConfig, capturedPlayerIds)
+      : []
+    const capturedNetAmounts = capturedSideGameState && groupState.sideGameConfig
+      ? aggregateSettlement(capturedSideGameState, groupState.sideGameConfig, capturedPlayerIds)
+      : []
+    // group_round_players.id → auth.users.id (null for guests)
+    const capturedPlayerUserIdMap: Record<string, string | null | undefined> = {}
+    for (const p of groupState.players) {
+      capturedPlayerUserIdMap[p.id] = p.userId
+    }
+
     const rounds = get().rounds.map(r =>
       r.id === roundId ? { ...r, completedAt: now, scoreDifferential, isLocked: hasSideGames && !!groupRoundId ? true : undefined } : r,
     )
@@ -397,12 +418,16 @@ export const useAppStore = create<StoreState>((set, get) => ({
       if (completedRound && acquireSyncLock(roundId)) {
         get().markRoundPending(roundId) // persists syncStatus to localStorage before sync starts
         syncRoundToSupabase(completedRound, userId)
-          .then(result => {
+          .then(async result => {
             if (result.success) {
               get().markRoundSynced(roundId)
-              // Lock all rounds in the group round in Supabase (fire-and-forget)
               if (hasSideGames && groupRoundId) {
-                void lockGroupRoundRounds(groupRoundId)
+                // Lock individual rounds, then mark group round completed (required by RLS),
+                // then persist side game results and settlement history.
+                await lockGroupRoundRounds(groupRoundId)
+                await markGroupRoundCompleted(groupRoundId)
+                await persistSideGameResults(groupRoundId, capturedSideGameResults)
+                await persistSettlementHistory(roundId, capturedNetAmounts, capturedPlayerUserIdMap)
               }
             } else {
               get().markRoundError(roundId)

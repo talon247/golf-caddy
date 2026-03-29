@@ -5,6 +5,12 @@ import { supabase } from '../supabase'
 import { useToastStore } from '../../store/toastStore'
 import type { NetAmount } from './settlement'
 import type { Json } from '../database.types'
+import type { SideGameComputedState } from '../../hooks/useSideGameState'
+import type { SideGameConfig } from '../../types'
+import { getSkinsSettlement } from './skins'
+import { getNassauSettlement } from './nassau'
+import { getPressSettlement } from './press'
+import { getStablefordSettlement } from './stableford'
 
 export type SideGameResultGameType =
   | 'skins'
@@ -95,4 +101,74 @@ export async function persistSettlementHistory(
   if (error) {
     useToastStore.getState().addToast('Could not save settlement history — results are still visible in-round.')
   }
+}
+
+/**
+ * Convert computed side game state into `SideGameResult[]` rows ready for
+ * `persistSideGameResults`. Calls each active game engine's settlement function
+ * and maps the entries to the DB schema.
+ */
+export function buildSideGameResults(
+  state: SideGameComputedState,
+  config: SideGameConfig,
+  playerIds: string[],
+): SideGameResult[] {
+  const results: SideGameResult[] = []
+
+  if (state.skins) {
+    for (const entry of getSkinsSettlement(state.skins)) {
+      results.push({
+        gameType: 'skins',
+        winnerPlayerId: entry.toPlayerId,
+        loserPlayerId: entry.fromPlayerId,
+        amountOwed: entry.amount,
+      })
+    }
+  }
+
+  if (state.nassau) {
+    for (const entry of getNassauSettlement(state.nassau, playerIds)) {
+      results.push({
+        gameType: nassauDescriptionToGameType(entry.description),
+        winnerPlayerId: entry.toPlayerId,
+        loserPlayerId: entry.fromPlayerId,
+        amountOwed: entry.amount,
+      })
+    }
+  }
+
+  if (state.press && state.nassau) {
+    const stakes = {
+      front: config.nassauStakeFront ?? 1,
+      back: config.nassauStakeBack ?? 1,
+      overall: config.nassauStakeOverall ?? 1,
+    }
+    for (const entry of getPressSettlement(state.press, stakes)) {
+      results.push({
+        gameType: 'press',
+        winnerPlayerId: entry.toPlayerId,
+        loserPlayerId: entry.fromPlayerId,
+        amountOwed: entry.amount,
+      })
+    }
+  }
+
+  if (state.stableford) {
+    for (const entry of getStablefordSettlement(state.stableford)) {
+      results.push({
+        gameType: 'stableford',
+        winnerPlayerId: entry.toPlayerId,
+        loserPlayerId: entry.fromPlayerId,
+        amountOwed: entry.amount,
+      })
+    }
+  }
+
+  return results
+}
+
+function nassauDescriptionToGameType(description: string): SideGameResultGameType {
+  if (description.includes('Front')) return 'nassau_front'
+  if (description.includes('Back')) return 'nassau_back'
+  return 'nassau_overall'
 }

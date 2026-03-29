@@ -7,8 +7,7 @@ import { calcTotalStrokes, calcPuttsAvg, calcGIR, calcFairwaysHit } from '../uti
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
 import DiscordInviteBanner from '../components/DiscordInviteBanner'
-import SettlementScreen from '../components/group-round/SettlementScreen'
-import { useGroupRoundStore } from '../store/groupRoundStore'
+import PostRoundSettlementView from '../components/group-round/PostRoundSettlementView'
 import { CANNY_WISH_LIST_URL } from '../lib/config'
 
 function scoreDiff(strokes: number, par: number): string {
@@ -35,9 +34,6 @@ export default function Summary() {
   const deleteRound = useAppStore(s => s.deleteRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
   const isAuthenticated = useAppStore(s => s.isAuthenticated)
-  const groupRound = useGroupRoundStore(s => s.groupRound)
-  const sideGameConfig = useGroupRoundStore(s => s.sideGameConfig)
-
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
   // Cloud-only rounds are not in the Zustand store; fall back to navigation state
   // passed by History.tsx when the user taps a round row.
@@ -499,9 +495,9 @@ export default function Summary() {
         </table>
       </div>
 
-      {/* Settlement (group round with side games) */}
-      {round.completedAt && groupRound?.status === 'completed' && sideGameConfig?.sideGamesEnabled && (
-        <SettlementScreen />
+      {/* Settlement — loaded from Supabase for authenticated post-round view */}
+      {round.completedAt && isAuthenticated && (
+        <PostRoundSettlementView roundId={round.id} />
       )}
 
       {/* Discord invite nudge */}

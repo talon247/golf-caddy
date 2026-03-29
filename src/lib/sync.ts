@@ -213,6 +213,24 @@ export async function lockGroupRoundRounds(groupRoundId: string): Promise<void> 
   }
 }
 
+// ── Mark group round completed ────────────────────────────────────────────
+
+/**
+ * Update group_rounds.status to 'completed' so RLS allows side game result
+ * and settlement history inserts. Must be called before persistSideGameResults
+ * and persistSettlementHistory. Fire-and-forget; errors are swallowed.
+ */
+export async function markGroupRoundCompleted(groupRoundId: string): Promise<void> {
+  try {
+    await supabase
+      .from('group_rounds')
+      .update({ status: 'completed' })
+      .eq('id', groupRoundId)
+  } catch {
+    // intentionally swallowed — local state is already updated
+  }
+}
+
 // ── Abandon round ─────────────────────────────────────────────────────────
 
 /**
