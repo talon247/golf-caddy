@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417, THEA-418)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
@@ -545,6 +545,7 @@ export interface Database {
           role: TournamentMemberRole
           guest_name: string | null
           joined_at: string
+          removed_at: string | null
         }
         Insert: {
           id?: string
@@ -553,10 +554,12 @@ export interface Database {
           role?: TournamentMemberRole
           guest_name?: string | null
           joined_at?: string
+          removed_at?: string | null
         }
         Update: {
           role?: TournamentMemberRole
           guest_name?: string | null
+          removed_at?: string | null
         }
         Relationships: [
           {
@@ -742,17 +745,45 @@ export interface Database {
       }
       create_tournament: {
         Args: {
-          p_type: string
+          p_type: TournamentType
           p_name: string
-          p_start_date?: string
-          p_end_date?: string
-          p_points_preset?: string
-          p_date?: string
-          p_course_name?: string
-          p_course_rating?: number | null
-          p_slope_rating?: number | null
-          p_format?: string
-          p_field_size?: number
+          p_config?: Json
+        }
+        Returns: Json
+      }
+      join_tournament: {
+        Args: {
+          p_invite_code: string
+          p_guest_name?: string | null
+        }
+        Returns: Json
+      }
+      update_tournament: {
+        Args: {
+          p_tournament_id: string
+          p_name?: string | null
+          p_config?: Json | null
+          p_status?: TournamentStatus | null
+        }
+        Returns: Json
+      }
+      remove_tournament_member: {
+        Args: {
+          p_tournament_id: string
+          p_target_user_id: string
+        }
+        Returns: Json
+      }
+      void_tournament_round: {
+        Args: {
+          p_tournament_round_id: string
+          p_reason?: string | null
+        }
+        Returns: Json
+      }
+      lock_event_results: {
+        Args: {
+          p_tournament_id: string
         }
         Returns: Json
       }
