@@ -3,7 +3,7 @@ export { useGroupRoundStore } from './groupRoundStore'
 
 import { create } from 'zustand'
 import type { Club, Round, Shot, UserProfile, SyncQueueItem } from '../types'
-import { loadState, saveState, addAbandonedRoundId, type PersistedState } from '../storage'
+import { loadState, saveState, addAbandonedRoundId, clearGroupRoundRecovery, type PersistedState } from '../storage'
 import { useGroupRoundStore } from './groupRoundStore'
 import { useLeaderboardStore } from './leaderboardStore'
 import { computeAGS, computeScoreDifferential } from '../lib/handicap/calculator'
@@ -410,6 +410,7 @@ export const useAppStore = create<StoreState>((set, get) => ({
     persist({ ...get(), rounds, activeRoundId })
     useGroupRoundStore.getState().clearGroupRound()
     useLeaderboardStore.getState().reset()
+    clearGroupRoundRecovery()
 
     // Fire-and-forget sync if authenticated
     const { isAuthenticated, userId } = get()
@@ -486,6 +487,7 @@ export const useAppStore = create<StoreState>((set, get) => ({
     persist({ ...get(), rounds, activeRoundId })
     useGroupRoundStore.getState().clearGroupRound()
     useLeaderboardStore.getState().reset()
+    clearGroupRoundRecovery()
 
     // Persist the abandoned ID locally so fetchActiveRound can't re-add it on
     // refresh even if the Supabase fire-and-forget hasn't propagated yet.

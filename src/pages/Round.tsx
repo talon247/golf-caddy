@@ -55,7 +55,18 @@ export default function Round() {
   const userId = useAppStore(s => s.userId)
 
   const round = rounds.find(r => r.id === activeRoundId)
-  const [currentHole, setCurrentHole] = useState(1)
+  const [currentHole, setCurrentHole] = useState<number>(() => {
+    const { rounds: rs, activeRoundId: aid } = useAppStore.getState()
+    const r = rs.find(x => x.id === aid)
+    if (!r) return 1
+    let lastActive = 1
+    for (const h of r.holes) {
+      if (h.shots.length > 0 || (h.putts ?? 0) > 0 || (h.penalties ?? 0) > 0) {
+        lastActive = h.number
+      }
+    }
+    return lastActive
+  })
   const [activeTab, setActiveTab] = useState<Tab>('round')
   const [showAbandonModal, setShowAbandonModal] = useState(false)
 

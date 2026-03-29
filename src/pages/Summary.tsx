@@ -1,13 +1,15 @@
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAppStore } from '../store'
+import { useGroupRoundStore } from '../store/groupRoundStore'
 import type { Round } from '../types'
 import { calcTotalStrokes, calcPuttsAvg, calcGIR, calcFairwaysHit } from '../utils/scoring'
 import { useHandicapEstimate, computeRoundDifferential } from '../hooks/useHandicapEstimate'
 import { SaveRoundBanner } from '../components/SaveRoundBanner'
 import DiscordInviteBanner from '../components/DiscordInviteBanner'
 import PostRoundSettlementView from '../components/group-round/PostRoundSettlementView'
+import GuestConversionPrompt, { runGuestConversionIfPending } from '../components/group-round/GuestConversionPrompt'
 import { CANNY_WISH_LIST_URL } from '../lib/config'
 
 function scoreDiff(strokes: number, par: number): string {
@@ -34,11 +36,21 @@ export default function Summary() {
   const deleteRound = useAppStore(s => s.deleteRound)
   const setActiveRoundId = useAppStore(s => s.setActiveRoundId)
   const isAuthenticated = useAppStore(s => s.isAuthenticated)
+  const userId = useAppStore(s => s.userId)
+  const currentPlayer = useGroupRoundStore(s => s.currentPlayer)
   const putterIds = new Set(bag.filter(c => c.name.toLowerCase() === 'putter').map(c => c.id))
+
   // Cloud-only rounds are not in the Zustand store; fall back to navigation state
   // passed by History.tsx when the user taps a round row.
   const navRound = (location.state as { round?: Round } | null)?.round
   const round = rounds.find(r => r.id === id) ?? (navRound?.id === id ? navRound : undefined)
+
+  // After OAuth redirect, run guest → account migration if pending
+  useEffect(() => {
+    if (!isAuthenticated || !userId || !round?.completedAt) return
+    void runGuestConversionIfPending(round, userId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, userId, round?.id])
 
   if (!round) {
     return (
@@ -500,6 +512,17 @@ export default function Summary() {
         <PostRoundSettlementView roundId={round.id} />
       )}
 
+      {/* Guest conversion prompt — shown for unauthenticated group-round joiners */}
+      {!isAuthenticated && round.completedAt && currentPlayer && currentPlayer.userId == null && (
+        <GuestConversionPrompt
+          round={round}
+          playerId={currentPlayer.id}
+          playerName={currentPlayer.displayName ?? currentPlayer.playerName ?? round.playerName}
+          totalStrokes={totalStrokes}
+          totalPar={playedPar}
+        />
+      )}
+
       {/* Discord invite nudge */}
       <DiscordInviteBanner />
 
@@ -527,7 +550,9 @@ export default function Summary() {
         </button>
       </div>
 
-      {round.completedAt && <SaveRoundBanner roundId={round.id} isAuthenticated={isAuthenticated} />}
+      {round.completedAt && !(currentPlayer && currentPlayer.userId == null) && (
+        <SaveRoundBanner roundId={round.id} isAuthenticated={isAuthenticated} />
+      )}
     </main>
   )
 }
