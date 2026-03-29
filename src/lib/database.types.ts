@@ -1,4 +1,4 @@
-// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282)
+// Auto-generated types for the Golf Caddy Supabase schema (THEA-75, THEA-79, THEA-88, THEA-105, THEA-113, THEA-115, THEA-122, THEA-132, THEA-144, THEA-282, THEA-417)
 // Run `npx supabase gen types typescript` to regenerate after schema changes.
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
@@ -6,6 +6,9 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 export type RoundStatus = 'active' | 'completed' | 'abandoned'
 export type GroupRoundDbStatus = 'waiting' | 'active' | 'completed'
 export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked'
+export type TournamentType = 'league' | 'event'
+export type TournamentStatus = 'draft' | 'active' | 'completed' | 'archived'
+export type TournamentMemberRole = 'commissioner' | 'host' | 'member' | 'player'
 
 export interface Database {
   public: {
@@ -455,6 +458,197 @@ export interface Database {
           }
         ]
       }
+      tournaments: {
+        Row: {
+          id: string
+          type: TournamentType
+          name: string
+          creator_id: string
+          status: TournamentStatus
+          join_code: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          type?: TournamentType
+          name: string
+          creator_id: string
+          status?: TournamentStatus
+          join_code?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          type?: TournamentType
+          name?: string
+          status?: TournamentStatus
+          join_code?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tournament_config: {
+        Row: {
+          id: string
+          tournament_id: string
+          start_date: string | null
+          end_date: string | null
+          points_config: Json
+          format: string | null
+          field_size: number | null
+          course_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tournament_id: string
+          start_date?: string | null
+          end_date?: string | null
+          points_config?: Json
+          format?: string | null
+          field_size?: number | null
+          course_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          start_date?: string | null
+          end_date?: string | null
+          points_config?: Json
+          format?: string | null
+          field_size?: number | null
+          course_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tournament_config_tournament_id_fkey'
+            columns: ['tournament_id']
+            referencedRelation: 'tournaments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tournament_config_course_id_fkey'
+            columns: ['course_id']
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      tournament_members: {
+        Row: {
+          id: string
+          tournament_id: string
+          user_id: string | null
+          role: TournamentMemberRole
+          guest_name: string | null
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          tournament_id: string
+          user_id?: string | null
+          role?: TournamentMemberRole
+          guest_name?: string | null
+          joined_at?: string
+        }
+        Update: {
+          role?: TournamentMemberRole
+          guest_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tournament_members_tournament_id_fkey'
+            columns: ['tournament_id']
+            referencedRelation: 'tournaments'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      tournament_rounds: {
+        Row: {
+          id: string
+          tournament_id: string
+          group_round_id: string | null
+          round_id: string | null
+          player_id: string
+          counted_at: string
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          id?: string
+          tournament_id: string
+          group_round_id?: string | null
+          round_id?: string | null
+          player_id: string
+          counted_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tournament_rounds_tournament_id_fkey'
+            columns: ['tournament_id']
+            referencedRelation: 'tournaments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tournament_rounds_group_round_id_fkey'
+            columns: ['group_round_id']
+            referencedRelation: 'group_rounds'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tournament_rounds_round_id_fkey'
+            columns: ['round_id']
+            referencedRelation: 'rounds'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      tournament_standings: {
+        Row: {
+          id: string
+          tournament_id: string
+          user_id: string | null
+          guest_name: string | null
+          points: number
+          rank: number
+          rounds_played: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tournament_id: string
+          user_id?: string | null
+          guest_name?: string | null
+          points?: number
+          rank?: number
+          rounds_played?: number
+          updated_at?: string
+        }
+        Update: {
+          points?: number
+          rank?: number
+          rounds_played?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tournament_standings_tournament_id_fkey'
+            columns: ['tournament_id']
+            referencedRelation: 'tournaments'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -546,11 +740,30 @@ export interface Database {
         }
         Returns: number
       }
+      create_tournament: {
+        Args: {
+          p_type: string
+          p_name: string
+          p_start_date?: string
+          p_end_date?: string
+          p_points_preset?: string
+          p_date?: string
+          p_course_name?: string
+          p_course_rating?: number | null
+          p_slope_rating?: number | null
+          p_format?: string
+          p_field_size?: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       round_status: RoundStatus
       group_round_status: GroupRoundDbStatus
       friendship_status: FriendshipStatus
+      tournament_type: TournamentType
+      tournament_status: TournamentStatus
+      tournament_member_role: TournamentMemberRole
     }
   }
 }
